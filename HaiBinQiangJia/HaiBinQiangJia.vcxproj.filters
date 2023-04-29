@@ -87,6 +87,9 @@
     <ClInclude Include="include\utils\strutils.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="include\model\housing.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

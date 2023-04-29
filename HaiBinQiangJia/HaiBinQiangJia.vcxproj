@@ -159,6 +159,7 @@
     <ClInclude Include="include\ff\FFHook.h" />
     <ClInclude Include="include\ff\FFProcess.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="include\model\housing.h" />
     <ClInclude Include="include\rapidjson\allocators.h" />
     <ClInclude Include="include\rapidjson\document.h" />
     <ClInclude Include="include\rapidjson\encodedstream.h" />

@@ -5,6 +5,8 @@
 #include "../utils/md5.h"
 #include "../utils/sigscanner.h"
 #include "../utils/strutils.h"
+#include "../model/housing.h"
+#include "../model/rotation.h"
 #include "../rapidjson/document.h"
 #include "../rapidjson/stringbuffer.h"
 #include "../rapidjson/filereadstream.h"
@@ -25,24 +27,7 @@ using FFLog::Log;
 using FFLog::int_to_hex;
 
 #define MAX_PATH 512
-struct FurnitureInstance {
-	int category;
-	int color;
-	float x, y, z, r;
-	FurnitureInstance(int c, float x, float y, float z, float r, int color) :category(c), x(x), y(y), z(z), r(r), color(color) {}
-};
-struct CategoryInstance {
-	CategoryInstance(int categoryId) { this->categoryId = categoryId; this->count = 0; this->_p = 0; };
-	CategoryInstance() {};
-	int categoryId;
-	int count;
-	std::vector<float> posX;
-	std::vector<float> posY;
-	std::vector<float> posZ;
-	std::vector<float> r;
-	std::vector<int> color;
-	int _p = 0;
-};
+
 
 class DLLAPI FFProcess {
 public:
@@ -60,13 +45,7 @@ public:
 		static FFProcess instance;
 		return instance;
 	}
-	typedef struct POS {
-		float x, y, z;
-	}POS;
 
-	typedef struct QUA {
-		float x, y, z, w;
-	}QUA;
 
 	DWORD ProcessFind(LPCTSTR Exename);
 	int OpenProcessByPid();
@@ -232,7 +211,7 @@ public:
 	SIZE_T housing;
 	void init_my_select() {
 		my_select = (_select)(GetBaseAdd() + OffsetMgr::offset_Select);
-		housing = ReadGameMemory<SIZE_T>(baseAdd, { 0x2056C88 , 0x40 });
+		housing = ReadGameMemory<SIZE_T>(baseAdd, { OffsetMgr::layoutWorld , 0x40 });
 	}
 	void set_rotation_radians(float radians) {
 		std::vector<SIZE_T> Qua_y{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4};
@@ -261,11 +240,7 @@ public:
 		init_my_select();
 		total_count = list.size();
 		InjectPlaceAnywhere();
-		/*
-		layoutWorldPtr("48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 49 40 E9 ?? ?? ?? ??", 2);
-        housingModulePtr("40 53 48 83 EC 20 33 DB 48 39 1D ?? ?? ?? ?? 75 2C 45 33 C0 33 D2 B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 11 48 8B C8 E8 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? EB 07", 0xA);
-		*/
-		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + 0x2056C88);
+		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + OffsetMgr::layoutWorld);
 		std::vector<CategoryInstance> import_file_furniture_list = Boogiepop_Import_ReadCateList();
 		Log() << "import_file_furniture_list:" << import_file_furniture_list.size() << endl;
 		FFHook& hook = FFHook::get_instance();
@@ -439,7 +414,7 @@ int FFProcess::UpdateOffset() {
 	LPCSTR Loadhouse_Signature = "\x85\xC0\x74\x00\x48\x8D\x00\x00\xE9\x00\x00\x00\x00\x48\x8B";
 	LPCSTR Loadhouse_Mask = "xxx?xx??x????xx";
 
-	//LPCSTR Viewmatrix_Signature = "\x20\x65\x00\x8B\x04\x00\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xBA\x00\x00\x00\x00\x48\x8B\x00\x00\x8B\x04\x00\x39\x05\x00\x00\x00\x00\x7F\x00\x48\x8D\x00\x00\x00\x00\x00\x48\x83\xC4\x00\x5B\xC3\x48\x8D\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\x3D\x2F\x65\x9C\x01";
+	// TODO
 	LPCSTR Viewmatrix_Signature = "\x20\x65\x00\x8B\x04\x00\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xBA\x00\x00\x00\x00\x48\x8B\x00\x00\x8B\x04\x00\x39\x05\x00\x00\x00\x00\x7F\x00\x48\x8D\x00\x00\x00\x00\x00\x48\x83\xC4\x00\x5B\xC3\x48\x8D\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\x3D\xF7\x7F\xC3\x01";
 	LPCSTR Viewmatrix_Mask = "xx?xx?????xx????x????xx??xx?xx????x?xx?????xxx?xxxx?????x????xxxxxx";
 
@@ -489,7 +464,7 @@ int FFProcess::UpdateOffset() {
 		//selectItemAddress = Plugin.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 6C 24 40 48 8B CE");
 		OffsetMgr::offset_Select = (SIZE_T)0x5AFC40;//0x5B00B0;//0x5AFFC0;// 0x5A3310;
 		
-		Log() << "UpdateOffset:" << std::endl;
+		Log() << "<<<<<< offets:" << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa1Offset) << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa2Offset) << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa3Offset) << std::endl;
@@ -499,7 +474,7 @@ int FFProcess::UpdateOffset() {
 		Log() << int_to_hex(OffsetMgr::offset_ViewMatrix) << std::endl;
 		Log() << int_to_hex(OffsetMgr::offset_SavePreview) << std::endl;
 		Log() << int_to_hex(OffsetMgr::offset_Select) << std::endl;
-		Log() << " === UpdateOffset" << std::endl;
+		Log() << ">>>>>> offets" << std::endl;
 		return 1;
 	}
 	else {
@@ -640,14 +615,14 @@ bool FFProcess::IsHousing() {
 	return state1 != 0;
 }
 bool FFProcess::CanEdit() {
-	//FIXME: test hook
-	//return true;
-	//ACTIVE NOTHING:0 HOVER:1 MOVE/ROTATE:3
+	// FIXME: test hook
+	// return true;
+	// ACTIVE NOTHING:0 HOVER:1 MOVE/ROTATE:3
 	int state1 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
-	//MOVE:1 or ROTATE:2
+	// MOVE:1 or ROTATE:2
 	int state2 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState2_moveORrotate);
 	if (state1 == 3 && state2 == 2) {
-		return true; //Activate a item in ROTATE 
+		return true;
 	}
 	else {
 		return false;
@@ -1162,7 +1137,7 @@ void FFProcess::LoadInjectBoogiepop(){
 	//FFHook& ffhook = FFHook::get_instance();
 	std::string strpath = GetLocalAppDataPath() + "\\HaiBinQiangJia\\boogiepop.dll";
 	std::wstring ws = stringToWstring(strpath);
-	Log() << "diaoyongDLL:" + strpath << endl;
+	Log() << "DLL:" + strpath << endl;
 	if (Load_Inject(ws.c_str()) != 0) {
 		Log() << "InejctSuc" << endl;
 	}

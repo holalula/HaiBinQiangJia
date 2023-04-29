@@ -46,6 +46,8 @@ public:
 	static std::vector<SIZE_T> ActorId;
 
 	static std::vector<SIZE_T> Furniture_List;
+
+	static SIZE_T layoutWorld;
 };
 SIZE_T OffsetMgr::IsWarehouseOffset = 0x08 - 0x10;
 
@@ -177,5 +179,8 @@ SIZE_T OffsetMgr::ActortableBase = 0x207C6A8;//0x20759a8 //0X207E8A8;//0x1F8B6D8
 std::vector<SIZE_T> OffsetMgr::ActorName{ OffsetMgr::ActortableBase,0x30 };
 std::vector<SIZE_T> OffsetMgr::ActorHomeworld{ OffsetMgr::ActortableBase,0x195E };
 std::vector<SIZE_T> OffsetMgr::ActorId{ OffsetMgr::ActortableBase,0x30 };
+
+// layoutWorldPtr("48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 49 40 E9 ?? ?? ?? ??", 2);
+SIZE_T OffsetMgr::layoutWorld = 0x2056C88;
 
 #endif
