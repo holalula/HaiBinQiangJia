@@ -1,5 +1,16 @@
 #pragma once
 #include <tchar.h>
+void Wchar_tToString(std::string& szDst, wchar_t* wchar)
+{
+	wchar_t* wText = wchar;
+	DWORD dwNum = WideCharToMultiByte(CP_OEMCP, NULL, wText, -1, NULL, 0, NULL, FALSE);
+	char* psText;
+	psText = new char[dwNum];
+	WideCharToMultiByte(CP_OEMCP, NULL, wText, -1, psText, dwNum, NULL, FALSE);
+	szDst = psText;
+	delete[]psText;
+}
+
 std::wstring stringToWstring(const std::string& str)
 {
 	LPCSTR pszSrc = str.c_str();

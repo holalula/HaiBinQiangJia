@@ -249,7 +249,7 @@ public:
 	SIZE_T housing;
 	void init_my_select() {
 		my_select = (_select)(GetBaseAdd() + OffsetMgr::offset_Select);
-		housing = ReadGameMemory<SIZE_T>(baseAdd, { 0x2056C88 , 0x40 });//0x204ff88 // 0X2058E88 //0x1f65d30 
+		housing = ReadGameMemory<SIZE_T>(baseAdd, { 0x2056C88 , 0x40 });
 	}
 	void set_rotation_radians(float radians) {
 		std::vector<SIZE_T> Qua_y{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4};
@@ -1064,16 +1064,6 @@ int FFProcess::CateList2Json(const char* FilePath) {
 #pragma endregion
 
 #pragma region IO
-void Wchar_tToString(std::string& szDst, wchar_t* wchar)
-{
-	wchar_t* wText = wchar;
-	DWORD dwNum = WideCharToMultiByte(CP_OEMCP, NULL, wText, -1, NULL, 0, NULL, FALSE);// WideCharToMultiByte������
-	char* psText; // psTextΪchar*����ʱ���飬��Ϊ��ֵ��std::string���м����
-	psText = new char[dwNum];
-	WideCharToMultiByte(CP_OEMCP, NULL, wText, -1, psText, dwNum, NULL, FALSE);// WideCharToMultiByte���ٴ�����
-	szDst = psText;// std::string��ֵ
-	delete[]psText;// psText�����
-}
 std::string FFProcess::GetLocalAppDataPath() {
 	WCHAR path[MAX_PATH];
 	SHGetSpecialFolderPath(NULL, path, CSIDL_APPDATA, FALSE);
