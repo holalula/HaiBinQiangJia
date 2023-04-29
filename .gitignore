@@ -1,0 +1,14 @@
+/.vs
+/Debug
+/x64
+
+/HaiBinQiangJia/Debug
+/HaiBinQiangJia/x64
+
+/boogiepop/Debug
+/boogiepop/x64
+
+/test/Debug
+/test/x64
+
+*.zip
