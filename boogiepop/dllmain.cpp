@@ -709,7 +709,6 @@ HRESULT __fastcall Present(IDXGISwapChain* pChain, UINT SyncInterval, UINT Flags
 		for (__int64 i = 0; i < 16; i++) {
 			float ff = Memory::ReadGameMemory<float>(fp.hProcess, MatrixAddr + (i * (__int64)0x4));
 			viewProjectionMatrix[i] = ff;
-			//std::cout << "i=" << i << ",m=" << ff << std::endl;
 		}
 		ImGuizmo::Enable(true);
 		ImGuizmo::BeginFrame();
