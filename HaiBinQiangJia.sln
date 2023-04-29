@@ -8,10 +8,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boogiepop", "boogiepop\boogiepop.vcxproj", "{8000ECC8-B993-4185-9F32-65A43FE71991}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj", "{9588DF9E-89FD-47BF-9337-F1CE6040004D}"
-	ProjectSection(ProjectDependencies) = postProject
-		{A3B76577-1531-4DC3-B164-8DCB1CE0A5D1} = {A3B76577-1531-4DC3-B164-8DCB1CE0A5D1}
-		{8000ECC8-B993-4185-9F32-65A43FE71991} = {8000ECC8-B993-4185-9F32-65A43FE71991}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
