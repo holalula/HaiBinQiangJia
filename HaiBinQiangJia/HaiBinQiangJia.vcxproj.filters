@@ -93,6 +93,12 @@
     <ClInclude Include="include\model\rotation.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="include\utils\device.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils\memory.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

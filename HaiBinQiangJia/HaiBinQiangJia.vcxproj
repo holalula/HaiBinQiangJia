@@ -175,8 +175,10 @@
     <ClInclude Include="include\rapidjson\stringbuffer.h" />
     <ClInclude Include="include\rapidjson\writer.h" />
     <ClInclude Include="include\ff\FFLog.h" />
+    <ClInclude Include="include\utils\device.h" />
     <ClInclude Include="include\utils\md5.h" />
     <ClInclude Include="include\ff\OffsetMgr.h" />
+    <ClInclude Include="include\utils\memory.h" />
     <ClInclude Include="include\utils\strutils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="HBQJ_Process.h" />

@@ -68,3 +68,7 @@ struct HousingGameObject {
 	char f5[0xb0];
 	char color;
 };
+
+struct FurnitureList {
+	unsigned long long objs[400];
+};

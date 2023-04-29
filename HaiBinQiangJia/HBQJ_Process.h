@@ -1,5 +1,6 @@
 #pragma once
 #include "include/ff/FFProcess.h"
+#include "include/utils/memory.h"
 #define DLLEXPORT extern "C" __declspec(dllexport)
 
 DLLEXPORT void OpenFFXIVProcess() {
@@ -13,7 +14,7 @@ DLLEXPORT int GameOn() {
 	if (fp.GetBaseAdd() == 0) {
 		return 0;
 	}
-	__int64 actor = fp.ReadGameMemory<__int64>(fp.GetBaseAdd() + OffsetMgr::ActortableBase);
+	__int64 actor = Memory::ReadGameMemory<__int64>(fp.hProcess, fp.GetBaseAdd() + OffsetMgr::ActortableBase);
 	if (actor == 0) {
 		return 0;
 	}

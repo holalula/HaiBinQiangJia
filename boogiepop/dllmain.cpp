@@ -4,6 +4,7 @@
 //#include "pch.h"
 //#include "../HaiBinQiangJia/FFProcess.h"
 #include <include/ff/FFProcess.h>
+#include <include/utils/memory.h>
 #include<WinSock2.h>
 #include "include/mhook/mhook-lib/mhook.h"
 #include <include/ff/FFLog.h>
@@ -706,7 +707,7 @@ HRESULT __fastcall Present(IDXGISwapChain* pChain, UINT SyncInterval, UINT Flags
 		rotation = fp.GetSelectedItemRotation();
 		ImGuizmo::RecomposeMatrixFromComponents(&pos[0], &rotation[0], &matrixScale[0], &itemMatrix[0]);
 		for (__int64 i = 0; i < 16; i++) {
-			float ff = fp.ReadGameMemory<float>(MatrixAddr + (i * (__int64)0x4));
+			float ff = Memory::ReadGameMemory<float>(fp.hProcess, MatrixAddr + (i * (__int64)0x4));
 			viewProjectionMatrix[i] = ff;
 			//std::cout << "i=" << i << ",m=" << ff << std::endl;
 		}
@@ -765,7 +766,7 @@ DWORD WINAPI Check(LPVOID lp)
 			Log() << "Trigger CHECK: " << gInit << endl;
 			gInit = 0;
 			FFProcess& fp = FFProcess::get_instance();
-			fp.begin_import();
+			fp.import();
 		}
 	}
 	return 0;

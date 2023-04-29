@@ -5,6 +5,8 @@
 #include "../utils/md5.h"
 #include "../utils/sigscanner.h"
 #include "../utils/strutils.h"
+#include "../utils/device.h"
+#include "../utils/memory.h"
 #include "../model/housing.h"
 #include "../model/rotation.h"
 #include "../rapidjson/document.h"
@@ -23,6 +25,7 @@
 #include <direct.h>
 
 using namespace Rotation;
+using namespace Memory;
 using namespace FFLog;
 using FFLog::Log;
 using FFLog::int_to_hex;
@@ -55,16 +58,6 @@ public:
 	int UpdateOffset();
 	SIZE_T GetBaseAdd();
 
-	template<typename ReadType>
-	ReadType ReadGameMemory(SIZE_T addr);
-	template<typename ReadType>
-	ReadType ReadGameMemory(SIZE_T addr, std::vector<SIZE_T>offsets);
-	template<typename WriteType>
-	WriteType WriteGameMemory(SIZE_T addr, WriteType writeData, std::vector<SIZE_T>offsets, SIZE_T final_addr_offset);
-	template<typename WriteType>
-	WriteType WriteGameMemory(SIZE_T addr, WriteType writeData, std::vector<SIZE_T>offsets);
-	template<typename ReadType>
-	std::vector<ReadType> ReadGameMemory(SIZE_T addr, std::vector<SIZE_T>offsets, std::vector<SIZE_T>final_addr_offsets);
 	//MemoryPosRotation_1
 	std::vector<float> GetActiveItemPos();
 	int SetActiveItemX(float x);
@@ -135,151 +128,8 @@ public:
 	int GetActorHomeworld();
 	int GetActorId();
 
-
-
-	void send_click() {
-		SetForegroundWindow(window);
-		RECT window_rect;
-		GetWindowRect(window, &window_rect);
-		LONG px = (window_rect.left + window_rect.right) / 2;
-		LONG py = (window_rect.top + window_rect.bottom) / 2;
-
-		RECT rect;
-		SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, SPIF_SENDCHANGE);
-		int client_width = (rect.right - rect.left);
-		int client_height = (rect.bottom - rect.top);
-		
-		px = 65535 * ((double)px / client_width);
-		py = 65535 * ((double)py / client_height);
-		INPUT in[2]; // 0 = left dn, 1 = left up
-		ZeroMemory(in, sizeof(INPUT) * 2);
-
-		in[0].mi.dx = px;
-		in[0].mi.dy = py;
-		in[0].type = INPUT_MOUSE;
-		in[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE;
-
-		in[1].mi.dx = px;
-		in[1].mi.dy = py;
-		in[1].type = INPUT_MOUSE;
-		in[1].mi.dwFlags = MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE;
-
-		SendInput(2, in, sizeof(INPUT));
-		
-	}
-	void set_rotate_mode() {
-		WriteGameMemory<int>(baseAdd, 2, OffsetMgr::ActiveItemState2_moveORrotate);
-	}
-	typedef void(__fastcall* _select)(SIZE_T housing,SIZE_T item);
-	_select my_select;
-	SIZE_T housing;
-	void init_my_select() {
-		my_select = (_select)(GetBaseAdd() + OffsetMgr::offset_Select);
-		housing = ReadGameMemory<SIZE_T>(baseAdd, { OffsetMgr::layoutWorld , 0x40 });
-	}
-	void set_rotation_radians(float radians) {
-		std::vector<SIZE_T> Qua_y{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4};
-		std::vector<SIZE_T> Qua_w{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4  + 0x8 };
-		auto qua = Euler2Qua({ 0, radians * Rad2Deg,0 });
-		WriteGameMemory<float>(baseAdd, qua.y, Qua_y);
-		WriteGameMemory<float>(baseAdd, qua.w, Qua_w);
-	}
-	int total_count = 0, import_count = 0;
-	void print_cate_list(vector<CategoryInstance>& catelist) {
-		Log() << "catelist:" << endl;
-		for (auto ci : catelist) {
-			Log() << "cateid, size = " << ci.categoryId << ", " << ci.color.size() << endl;
-			for (auto x : ci.posX) Log() << x << ", "; Log() << endl;
-			for (auto x : ci.posY) Log() << x << ", "; Log() << endl;
-			for (auto x : ci.posZ) Log() << x << ", "; Log() << endl;
-			for (auto x : ci.r) Log() << x << ", "; Log() << endl;
-			for (auto x : ci.color) Log() << x << ", "; Log() << endl;
-		}
-	}
-	void begin_import() {
-		LoadInjectBoogiepop();
-		Sleep(2000);
-		Log() << "begin importing" << std::endl;
-		auto list = get_furniture_addr_list();
-		init_my_select();
-		total_count = list.size();
-		InjectPlaceAnywhere();
-		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + OffsetMgr::layoutWorld);
-		std::vector<CategoryInstance> import_file_furniture_list = Boogiepop_Import_ReadCateList();
-		Log() << "import_file_furniture_list:" << import_file_furniture_list.size() << endl;
-		FFHook& hook = FFHook::get_instance();
-		hook.set_Total_count(total_count);
-		hook.set_Import_c(0);
-		for (auto _addr : list) {
-			HousingGameObject* obj = (HousingGameObject*)_addr;
-			int target_cate = obj->category;
-			int target_color = obj->color;
-			float px = 0, py = 0, pz = 0, pr = 0;
-			for (auto& ci : import_file_furniture_list) {
-				if (ci.categoryId == target_cate && ci.color.size() > 0) {
-					int i = 0;
-					for (; i < ci.color.size(); i++) {
-						if (ci.color[i] == target_color) {
-							break;
-						}
-					}
-					if (i == ci.color.size()) {
-						i--;
-					}
-					if (i >= 0) {
-						px = ci.posX[i]; ci.posX.erase(ci.posX.begin() + i);
-						py = ci.posY[i]; ci.posY.erase(ci.posY.begin() + i);
-						pz = ci.posZ[i]; ci.posZ.erase(ci.posZ.begin() + i);
-						pr = ci.r[i];	 ci.r.erase(ci.r.begin() + i);
-						ci.color.erase(ci.color.begin() + i);
-						ci.count--;
-					}
-					print_cate_list(import_file_furniture_list);
-					break;
-				}
-			}
-			
-			auto qua = Euler2Qua({ 0, pr * Rad2Deg,0 });		
-			set_rotate_mode();
-			my_select(housing, obj->addr);
-			Log() << "my_select()" << endl;
-			layoutWorld->HousingStruct->ActiveItem->x = px;
-			layoutWorld->HousingStruct->ActiveItem->y = py;
-			layoutWorld->HousingStruct->ActiveItem->z = pz;
-			layoutWorld->HousingStruct->ActiveItem->qw = qua.w;
-			layoutWorld->HousingStruct->ActiveItem->qy = qua.y;
-			layoutWorld->HousingStruct->ActiveItem->qx = 0;
-			layoutWorld->HousingStruct->ActiveItem->qz = 0;
-			
-			send_click();
-			import_count++;
-			hook.set_Import_c(import_count);
-			Sleep(1500);
-		}
-	}
-
-	struct FurnitureList {
-		unsigned long long objs[400];
-	};
-	vector<unsigned long long> get_furniture_addr_list() {
-		FurnitureList furniture_list = ReadGameMemory<FurnitureList>(baseAdd, OffsetMgr::Furniture_List);
-		vector<unsigned long long> ret;
-		for (int i = 0; i < 400; i++) {
-			if (furniture_list.objs[i] != 0) {
-				ret.emplace_back(furniture_list.objs[i]);
-			}
-		}
-		return ret;
-	}
-
-	struct Nop9{
-		char op[9] = { (char)0x90, (char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 };
-	};
-	void set_select_nop() {
-		Nop9 nop9;
-		SIZE_T dwSize;
-		WriteProcessMemory(this->hProcess, (LPVOID)(baseAdd + OffsetMgr::offset_Select), &nop9, sizeof(nop9), &dwSize);
-	}
+	// New import method
+	void import();
 
 	DWORD pid = 0;
 	SIZE_T baseAdd = 0;
@@ -290,7 +140,44 @@ public:
 	SIZE_T dxgi_present_offset = 0;
 	SIZE_T get_dxgi_present();
 
+	int total_count = 0, import_count = 0;
+	void set_rotate_mode() {
+		WriteGameMemory<int>(this->hProcess, baseAdd, 2, OffsetMgr::ActiveItemState2_moveORrotate);
+	}
+	typedef void(__fastcall* _select)(SIZE_T housing, SIZE_T item);
+	_select my_select;
+	SIZE_T housing;
+	void init_my_select() {
+		my_select = (_select)(GetBaseAdd() + OffsetMgr::offset_Select);
+		housing = ReadGameMemory<SIZE_T>(this->hProcess, baseAdd, { OffsetMgr::layoutWorld , 0x40 });
+	}
+	void set_rotation_radians(float radians) {
+		std::vector<SIZE_T> Qua_y{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4 };
+		std::vector<SIZE_T> Qua_w{ OffsetMgr::baseHouse,0x40,0x18,0x60 + 0x4 + 0x8 };
+		auto qua = Euler2Qua({ 0, radians * Rad2Deg,0 });
+		WriteGameMemory<float>(this->hProcess, baseAdd, qua.y, Qua_y);
+		WriteGameMemory<float>(this->hProcess, baseAdd, qua.w, Qua_w);
+	}
+	vector<unsigned long long> get_furniture_addr_list() {
+		FurnitureList furniture_list = ReadGameMemory<FurnitureList>(this->hProcess, baseAdd, OffsetMgr::Furniture_List);
+		vector<unsigned long long> ret;
+		for (int i = 0; i < 400; i++) {
+			if (furniture_list.objs[i] != 0) {
+				ret.emplace_back(furniture_list.objs[i]);
+			}
+		}
+		return ret;
+	}
+	struct Nop9 {
+		char op[9] = { (char)0x90, (char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 ,(char)0x90 };
+	};
+	void set_select_nop() {
+		Nop9 nop9;
+		SIZE_T dwSize;
+		WriteProcessMemory(this->hProcess, (LPVOID)(baseAdd + OffsetMgr::offset_Select), &nop9, sizeof(nop9), &dwSize);
+	}
 };
+
 SIZE_T FFProcess::get_dxgi_present() {
 	return dxgi_present_offset;
 }
@@ -456,122 +343,13 @@ SIZE_T FFProcess::GetBaseAdd() {
 #pragma endregion
 
 #pragma region ReadWriteMemory
-//ReadWriteMemory
-template<typename ReadType>
-ReadType FFProcess::ReadGameMemory(SIZE_T addr) {
-	ReadType buf;
-	SIZE_T readSz;
-	if (this->hProcess == NULL) {
-		Log(LogType::error) << "[ERROR] ReadGameMemory failed to open process" << std::endl;
-		std::cout << "[ERROR] ReadGameMemory failed to open process" << std::endl;
-		return NULL;
-	}
-	ReadProcessMemory(this->hProcess, (LPCVOID)addr, &buf, sizeof(ReadType), &readSz);
-	if (readSz != sizeof(ReadType)) {
-		Log(LogType::warn) << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-		std::cout << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-	}
-	return buf;
-}
-template<typename ReadType>
-ReadType FFProcess::ReadGameMemory(SIZE_T addr, std::vector<SIZE_T>offsets) {
-	int offset_size = offsets.size();
-	ReadType buf;
-	SIZE_T dwSize;
-	SIZE_T value1;
-	SIZE_T value2;
-	value1 = addr;
-	for (int i = 0; i < offset_size - 1; i++) {
-		SIZE_T offset = offsets[i];
-		ReadProcessMemory(this->hProcess, (LPVOID)(value1 + offset), &value2, sizeof(SIZE_T), &dwSize);
-		value1 = value2;
-	}
-	SIZE_T final_add = value1 + offsets.back();
-	ReadProcessMemory(this->hProcess, (LPVOID)final_add, &buf, sizeof(buf), &dwSize);
-	if (dwSize != sizeof(ReadType)) {
-		Log(LogType::warn) << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-		std::cout << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-	}
-	return buf;
-}
 
-template<typename WriteType>
-WriteType FFProcess::WriteGameMemory(SIZE_T addr, WriteType writeData, std::vector<SIZE_T>offsets, SIZE_T final_addr_offset) {
-	int offset_size = offsets.size();
-	SIZE_T dwSize;
-	SIZE_T value1;
-	SIZE_T value2;
-	value1 = addr;
-	for (int i = 0; i < offset_size - 1; i++) {
-		SIZE_T offset = offsets[i];
-		ReadProcessMemory(this->hProcess, (LPVOID)(value1 + offset), &value2, sizeof(SIZE_T), &dwSize);
-		value1 = value2;
-	}
-	SIZE_T final_add = value1 + offsets.back();
-	WriteProcessMemory(this->hProcess, (LPVOID)(final_add + final_addr_offset), &writeData, sizeof(writeData), &dwSize);
-	if (dwSize != sizeof(WriteType)) {
-		Log(LogType::warn) << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-		std::cout << "[WARN] WriteGameMemory dwsize is different from WriteType size" << std::endl;
-	}
-	return writeData;
-}
-template<typename WriteType>
-WriteType FFProcess::WriteGameMemory(SIZE_T addr, WriteType writeData, std::vector<SIZE_T>offsets) {
-	int offset_size = offsets.size();
-	SIZE_T dwSize;
-	SIZE_T value1;
-	SIZE_T value2;
-	//SIZE_T readSz;
-	//ReadProcessMemory(this->hProcess,(LPVOID)addr, &value1, sizeof(SIZE_T), &dwSize);
-	value1 = addr;
-	for (int i = 0; i < offset_size - 1; i++) {
-		SIZE_T offset = offsets[i];
-		ReadProcessMemory(this->hProcess, (LPVOID)(value1 + offset), &value2, sizeof(SIZE_T), &dwSize);
-		value1 = value2;
-	}
-	SIZE_T final_add = value1 + offsets.back();
-	WriteProcessMemory(this->hProcess, (LPVOID)final_add, &writeData, sizeof(writeData), &dwSize);
-	if (dwSize != sizeof(WriteType)) {
-		Log(LogType::warn) << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-		std::cout << "[WARN] WriteGameMemory dwsize is different from WriteType size" << std::endl;
-	}
-	return writeData;
-}
-template<typename ReadType>
-std::vector<ReadType> FFProcess::ReadGameMemory(SIZE_T addr, std::vector<SIZE_T>offsets, std::vector<SIZE_T>final_addr_offsets) {
-	int read_count = final_addr_offsets.size();
-	std::vector<ReadType> return_v;
-
-	int offset_size = offsets.size();
-	ReadType buf;
-	SIZE_T dwSize;
-	SIZE_T value1;
-	SIZE_T value2;
-	value1 = addr;
-	for (int i = 0; i < offset_size - 1; i++) {
-		SIZE_T offset = offsets[i];
-		ReadProcessMemory(this->hProcess, (LPVOID)(value1 + offset), &value2, sizeof(SIZE_T), &dwSize);
-		value1 = value2;
-	}
-	SIZE_T final_add = value1 + offsets.back();
-
-	for (int i = 0; i < read_count; i++) {
-		ReadProcessMemory(this->hProcess, (LPVOID)(final_add + final_addr_offsets[i]), &buf, sizeof(buf), &dwSize);
-		return_v.push_back(buf);
-	}
-
-	if (dwSize != sizeof(ReadType)) {
-		Log(LogType::warn) << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-		std::cout << "[WARN] ReadGameMemory readsize is different from ReadType size" << std::endl;
-	}
-	return return_v;
-}
 #pragma endregion
 
 
 #pragma region Guizmo
 bool FFProcess::IsHousing() {
-	int state1 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
+	int state1 = ReadGameMemory<int>(this->hProcess, baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
 	Log() << "IsHousing:" << state1 << std::endl;
 	return state1 != 0;
 }
@@ -579,9 +357,9 @@ bool FFProcess::CanEdit() {
 	// FIXME: test hook
 	// return true;
 	// ACTIVE NOTHING:0 HOVER:1 MOVE/ROTATE:3
-	int state1 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
+	int state1 = ReadGameMemory<int>(this->hProcess, baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
 	// MOVE:1 or ROTATE:2
-	int state2 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState2_moveORrotate);
+	int state2 = ReadGameMemory<int>(this->hProcess, baseAdd, OffsetMgr::ActiveItemState2_moveORrotate);
 	if (state1 == 3 && state2 == 2) {
 		return true;
 	}
@@ -592,7 +370,7 @@ bool FFProcess::CanEdit() {
 
 std::vector<float> FFProcess::GetSelectedItemPos() {
 	if (CanEdit()) {
-		POS pos = ReadGameMemory<POS>(baseAdd,OffsetMgr::SJPosition);
+		POS pos = ReadGameMemory<POS>(this->hProcess, baseAdd,OffsetMgr::SJPosition);
 		return std::vector<float>{pos.x, pos.y, pos.z};
 	}
 	else {
@@ -602,7 +380,7 @@ std::vector<float> FFProcess::GetSelectedItemPos() {
 
 std::vector<float> FFProcess::GetSelectedItemRotation() {
 	if (CanEdit()) {
-		QUA rotation = ReadGameMemory<QUA>(baseAdd, OffsetMgr::SJRotation);
+		QUA rotation = ReadGameMemory<QUA>(this->hProcess, baseAdd, OffsetMgr::SJRotation);
 		return Qua2Deg(rotation);
 	}
 	else {
@@ -618,19 +396,19 @@ void FFProcess::SetSelectedItemPos(std::vector<float> pos) {
 	newpos.x = pos[0];
 	newpos.y = pos[1];
 	newpos.z = pos[2];
-	WriteGameMemory<POS>(baseAdd, newpos, OffsetMgr::SJPosition);
+	WriteGameMemory<POS>(this->hProcess, baseAdd, newpos, OffsetMgr::SJPosition);
 }
 
 void FFProcess::SetSelectedItemRotation(std::vector<float> rotation) {
 	if (!CanEdit()) {
 		return;
 	}
-	WriteGameMemory<QUA>(baseAdd, Euler2Qua(rotation), OffsetMgr::SJRotation);
+	WriteGameMemory<QUA>(this->hProcess, baseAdd, Euler2Qua(rotation), OffsetMgr::SJRotation);
 }
 
 bool FFProcess::isRotating() {
 	//int state = ReadGameMemory<int>(baseAdd, OffsetMgr::IsRotating);
-	int state = ReadGameMemory<int>(baseAdd, OffsetMgr::IsRotating2);
+	int state = ReadGameMemory<int>(this->hProcess, baseAdd, OffsetMgr::IsRotating2);
 	//return (state == 1);
 	//cout << "state:" << state << endl;
 	return !(state == 2 || state == 3 );
@@ -642,19 +420,19 @@ void FFProcess::SetPos2X(float x) {
 	if (!CanEdit()) {
 		return;
 	}
-	WriteGameMemory<float>(baseAdd, x, OffsetMgr::SJPositionX);
+	WriteGameMemory<float>(this->hProcess, baseAdd, x, OffsetMgr::SJPositionX);
 }
 void FFProcess::SetPos2Y(float y) {
 	if (!CanEdit()) {
 		return;
 	}
-	WriteGameMemory<float>(baseAdd, y, OffsetMgr::SJPositionY);
+	WriteGameMemory<float>(this->hProcess, baseAdd, y, OffsetMgr::SJPositionY);
 }
 void FFProcess::SetPos2Z(float z) {
 	if (!CanEdit()) {
 		return;
 	}
-	WriteGameMemory<float>(baseAdd, z, OffsetMgr::SJPositionZ);
+	WriteGameMemory<float>(this->hProcess, baseAdd, z, OffsetMgr::SJPositionZ);
 }
 #pragma endregion
 
@@ -664,39 +442,39 @@ std::vector<float> FFProcess::GetActiveItemPos() {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemPosition2;
 	std::vector<SIZE_T> finalAddrOffsets{ 0x00,0x04,0x08 };
 	SIZE_T addr1 = baseAdd;
-	return ReadGameMemory<float>(addr1, offsets, finalAddrOffsets);
+	return ReadGameMemory<float>(this->hProcess, addr1, offsets, finalAddrOffsets);
 }
 
 int FFProcess::SetActiveItemX(float x) {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemPosition2;
 	std::vector<SIZE_T> finalAddrOffsets{ 0x00,0x04,0x08 };
 	SIZE_T addr1 = baseAdd;
-	WriteGameMemory<float>(addr1, x, offsets, finalAddrOffsets[0]);
+	WriteGameMemory<float>(this->hProcess, addr1, x, offsets, finalAddrOffsets[0]);
 	return 0;
 }
 int FFProcess::SetActiveItemY(float y) {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemPosition2;
 	std::vector<SIZE_T> finalAddrOffsets{ 0x00,0x04,0x08 };
 	SIZE_T addr1 = baseAdd;
-	WriteGameMemory<float>(addr1, y, offsets, finalAddrOffsets[1]);
+	WriteGameMemory<float>(this->hProcess, addr1, y, offsets, finalAddrOffsets[1]);
 	return 0;
 }
 int FFProcess::SetActiveItemZ(float z) {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemPosition2;
 	std::vector<SIZE_T> finalAddrOffsets{ 0x00,0x04,0x08 };
 	SIZE_T addr1 = baseAdd;
-	WriteGameMemory<float>(addr1, z, offsets, finalAddrOffsets[2]);
+	WriteGameMemory<float>(this->hProcess, addr1, z, offsets, finalAddrOffsets[2]);
 	return 0;
 }
 float FFProcess::GetActiveItemRotation() {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemRotation2;
 	SIZE_T addr1 = baseAdd;
-	return ReadGameMemory<float>(addr1, offsets);
+	return ReadGameMemory<float>(this->hProcess, addr1, offsets);
 }
 int FFProcess::SetActiveItemRotation(float r) {
 	std::vector<SIZE_T> offsets = OffsetMgr::ActiveItemRotation2;
 	SIZE_T addr1 = baseAdd;
-	WriteGameMemory<float>(addr1, r, offsets);
+	WriteGameMemory<float>(this->hProcess, addr1, r, offsets);
 	return 0;
 }
 
@@ -737,7 +515,7 @@ int FFProcess::GetFurnitureListFromMemory() {
 	vfmemory.clear();
 	FFHook& ffhook = FFHook::get_instance();
 	//std::cout << std::uppercase<<std::hex<<"ffhook.getLoadhouse_P1():" << ffhook.getLoadhouse_P1() << std::endl;
-	__int64 StartAddr = ReadGameMemory<__int64>(ffhook.getLoadhouse_P1()) + (__int64)0x8;
+	__int64 StartAddr = ReadGameMemory<__int64>(this->hProcess, ffhook.getLoadhouse_P1()) + (__int64)0x8;
 	//GJF
 	//__int64 StartAddr = ReadGameMemory<__int64>((SIZE_T)0x0000022EC0364E30) + (__int64)0x8;
 	//1A87C9889B0
@@ -758,17 +536,17 @@ int FFProcess::GetFurnitureListFromMemory() {
 		unsigned char* pi = (unsigned char*)&cate;
 		for (int j = 0; j < 4; j++) {
 			if (j == 0)
-				*(pi + j) = ReadGameMemory<char>(addr_cate1);
+				*(pi + j) = ReadGameMemory<char>(this->hProcess, addr_cate1);
 			else if (j == 1)
-				*(pi + j) = ReadGameMemory<char>(addr_cate2);
+				*(pi + j) = ReadGameMemory<char>(this->hProcess, addr_cate2);
 		}
-		int ord = ReadGameMemory<int>(addr_o);
+		int ord = ReadGameMemory<int>(this->hProcess, addr_o);
 
-		int color = (int)ReadGameMemory<char>(addr_color);
-		float x = ReadGameMemory<float>(addr_x);
-		float y = ReadGameMemory<float>(addr_y);
-		float z = ReadGameMemory<float>(addr_z);
-		float r = ReadGameMemory<float>(addr_r);
+		int color = (int)ReadGameMemory<char>(this->hProcess, addr_color);
+		float x = ReadGameMemory<float>(this->hProcess, addr_x);
+		float y = ReadGameMemory<float>(this->hProcess, addr_y);
+		float z = ReadGameMemory<float>(this->hProcess, addr_z);
+		float r = ReadGameMemory<float>(this->hProcess, addr_r);
 		if (ord == _al) {
 			_al++;
 			Log() << x << ", " << y << ", " << z << ", " << r << endl;
@@ -783,7 +561,7 @@ int FFProcess::Boogiepop_GetFurnitureListFromMemory(std::vector<FurnitureInstanc
 	vf.clear();
 	FFHook& ffhook = FFHook::get_instance();
 	//__int64 StartAddr = ReadGameMemory<__int64>(ffhook.getLoadhouse_P1()) + (__int64)0x8;
-	__int64 StartAddr = ReadGameMemory<__int64>(loadhouseP1) + (__int64)0x8;
+	__int64 StartAddr = ReadGameMemory<__int64>(this->hProcess, loadhouseP1) + (__int64)0x8;
 	/*
 	std::vector<SIZE_T> offset_1st{ 0x01DD4CA0,0x10,0x8 };
 	SIZE_T a1 = ReadGameMemory<SIZE_T>(GetBaseAdd() + offset_1st[0]);
@@ -807,17 +585,17 @@ int FFProcess::Boogiepop_GetFurnitureListFromMemory(std::vector<FurnitureInstanc
 		unsigned char* pi = (unsigned char*)&cate;
 		for (int j = 0; j < 4; j++) {
 			if (j == 0)
-				*(pi + j) = ReadGameMemory<char>(addr_cate1);
+				*(pi + j) = ReadGameMemory<char>(this->hProcess, addr_cate1);
 			else if (j == 1)
-				*(pi + j) = ReadGameMemory<char>(addr_cate2);
+				*(pi + j) = ReadGameMemory<char>(this->hProcess, addr_cate2);
 		}
-		int ord = ReadGameMemory<int>(addr_o);
+		int ord = ReadGameMemory<int>(this->hProcess, addr_o);
 
-		int color = (int)ReadGameMemory<char>(addr_color);
-		float x = ReadGameMemory<float>(addr_x);
-		float y = ReadGameMemory<float>(addr_y);
-		float z = ReadGameMemory<float>(addr_z);
-		float r = ReadGameMemory<float>(addr_r);
+		int color = (int)ReadGameMemory<char>(this->hProcess, addr_color);
+		float x = ReadGameMemory<float>(this->hProcess, addr_x);
+		float y = ReadGameMemory<float>(this->hProcess, addr_y);
+		float z = ReadGameMemory<float>(this->hProcess, addr_z);
+		float r = ReadGameMemory<float>(this->hProcess, addr_r);
 		if (ord == _al) {
 			_al++;
 			vf.push_back(FurnitureInstance(cate, x, y, z, r, color));
@@ -944,7 +722,7 @@ int FFProcess::ExportCateJsonTempFile() {
 	bool bbb = IsHousing();
 	//bool bbb = true;
 	bbb = true;
-	int state1 = ReadGameMemory<int>(baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
+	int state1 = ReadGameMemory<int>(this->hProcess, baseAdd, OffsetMgr::ActiveItemState1_hoverORmoverotate);
 	Log() << "before" << std::endl;
 	if (bbb) {
 		
@@ -1083,7 +861,7 @@ int FFProcess::FP_Boogiepop_OffSavePreview() {
 //ActorTable
 std::vector<char> FFProcess::GetActorName() {
 	//OffsetMgr::ActorName
-	SIZE_T addr1 = ReadGameMemory<SIZE_T>(GetBaseAdd() + OffsetMgr::ActorName[0]);
+	SIZE_T addr1 = ReadGameMemory<SIZE_T>(this->hProcess, GetBaseAdd() + OffsetMgr::ActorName[0]);
 	SIZE_T addr2 = addr1 + OffsetMgr::ActorName[1];
 	//addr2 24byte
 	char buf[24];
@@ -1094,13 +872,13 @@ std::vector<char> FFProcess::GetActorName() {
 	return res;
 }
 int FFProcess::GetActorHomeworld() {
-	SIZE_T addr1 = ReadGameMemory<SIZE_T>(GetBaseAdd() + OffsetMgr::ActorHomeworld[0]);
-	int res = (short)ReadGameMemory<short>(addr1 + OffsetMgr::ActorHomeworld[1]);
+	SIZE_T addr1 = ReadGameMemory<SIZE_T>(this->hProcess, GetBaseAdd() + OffsetMgr::ActorHomeworld[0]);
+	int res = (short)ReadGameMemory<short>(this->hProcess, addr1 + OffsetMgr::ActorHomeworld[1]);
 	return res;
 }
 int FFProcess::GetActorId() {
-	SIZE_T addr1 = ReadGameMemory<SIZE_T>(GetBaseAdd() + OffsetMgr::ActorId[0]);
-	int res = ReadGameMemory<int>(addr1 + OffsetMgr::ActorId[1]);
+	SIZE_T addr1 = ReadGameMemory<SIZE_T>(this->hProcess, GetBaseAdd() + OffsetMgr::ActorId[0]);
+	int res = ReadGameMemory<int>(this->hProcess, addr1 + OffsetMgr::ActorId[1]);
 	return res;
 }
 
@@ -1121,3 +899,68 @@ void FFProcess::DisableSetTime() {
 	char newTime[] = { 0x4D, 0x8B, 0x8A, 0x70, 0x17, 0x00, 0x00 };
 	WriteProcessMemory(this->hProcess, (LPVOID)(GetBaseAdd() + 0xC2C290 + 0x19), &newTime, sizeof(char) * 7, &dwSize);
 }
+
+
+
+
+void FFProcess::import() {
+	LoadInjectBoogiepop();
+	Sleep(2000);
+	Log() << "begin importing" << std::endl;
+	auto list = get_furniture_addr_list();
+	init_my_select();
+	total_count = list.size();
+	InjectPlaceAnywhere();
+	LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + OffsetMgr::layoutWorld);
+	std::vector<CategoryInstance> import_file_furniture_list = Boogiepop_Import_ReadCateList();
+	Log() << "import_file_furniture_list:" << import_file_furniture_list.size() << endl;
+	FFHook& hook = FFHook::get_instance();
+	hook.set_Total_count(total_count);
+	hook.set_Import_c(0);
+	for (auto _addr : list) {
+		HousingGameObject* obj = (HousingGameObject*)_addr;
+		int target_cate = obj->category;
+		int target_color = obj->color;
+		float px = 0, py = 0, pz = 0, pr = 0;
+		for (auto& ci : import_file_furniture_list) {
+			if (ci.categoryId == target_cate && ci.color.size() > 0) {
+				int i = 0;
+				for (; i < ci.color.size(); i++) {
+					if (ci.color[i] == target_color) {
+						break;
+					}
+				}
+				if (i == ci.color.size()) {
+					i--;
+				}
+				if (i >= 0) {
+					px = ci.posX[i]; ci.posX.erase(ci.posX.begin() + i);
+					py = ci.posY[i]; ci.posY.erase(ci.posY.begin() + i);
+					pz = ci.posZ[i]; ci.posZ.erase(ci.posZ.begin() + i);
+					pr = ci.r[i];	 ci.r.erase(ci.r.begin() + i);
+					ci.color.erase(ci.color.begin() + i);
+					ci.count--;
+				}
+				break;
+			}
+		}
+
+		auto qua = Euler2Qua({ 0, pr * Rad2Deg,0 });
+		set_rotate_mode();
+		my_select(housing, obj->addr);
+		Log() << "my_select()" << endl;
+		layoutWorld->HousingStruct->ActiveItem->x = px;
+		layoutWorld->HousingStruct->ActiveItem->y = py;
+		layoutWorld->HousingStruct->ActiveItem->z = pz;
+		layoutWorld->HousingStruct->ActiveItem->qw = qua.w;
+		layoutWorld->HousingStruct->ActiveItem->qy = qua.y;
+		layoutWorld->HousingStruct->ActiveItem->qx = 0;
+		layoutWorld->HousingStruct->ActiveItem->qz = 0;
+
+		send_click(window);
+		import_count++;
+		hook.set_Import_c(import_count);
+		Sleep(1500);
+	}
+}
+
