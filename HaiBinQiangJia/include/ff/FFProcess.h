@@ -193,21 +193,7 @@ public:
 		char f5[0xb0];
 		char color;
 	};
-	void send_esc() {
-		PostMessage(window, WM_KEYDOWN, 0x1B, MapVirtualKey(0x1B, MAPVK_VK_TO_VSC));
-		Sleep(100);
-		PostMessage(window, WM_KEYUP, 0x1B, MapVirtualKey(0x1B, MAPVK_VK_TO_VSC));
-	}
-	void press_F11() {
-		PostMessage(window, WM_KEYDOWN, VK_F11, MapVirtualKey(VK_F11, MAPVK_VK_TO_VSC));
-		Sleep(100);
-		PostMessage(window, WM_KEYUP, VK_F11, MapVirtualKey(VK_F11, MAPVK_VK_TO_VSC));
-	}
-	void press_0() {
-		PostMessage(window, WM_KEYDOWN, VK_NUMPAD0, MapVirtualKey(VK_NUMPAD0, MAPVK_VK_TO_VSC));
-		Sleep(100);
-		PostMessage(window, WM_KEYUP, VK_NUMPAD0, MapVirtualKey(VK_NUMPAD0, MAPVK_VK_TO_VSC));
-	}
+
 	void send_click() {
 		SetForegroundWindow(window);
 		RECT window_rect;
@@ -273,13 +259,13 @@ public:
 		Log() << "begin importing" << std::endl;
 		auto list = get_furniture_addr_list();
 		init_my_select();
-		total_count = list.size(); //cout << "num of fur is " << list.size() << endl;
+		total_count = list.size();
 		InjectPlaceAnywhere();
 		/*
-		layoutWorldPtr = Plugin.TargetModuleScanner.GetStaticAddressFromSig("48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 49 40 E9 ?? ?? ?? ??", 2);
-        housingModulePtr = Plugin.TargetModuleScanner.GetStaticAddressFromSig("40 53 48 83 EC 20 33 DB 48 39 1D ?? ?? ?? ?? 75 2C 45 33 C0 33 D2 B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 11 48 8B C8 E8 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? EB 07", 0xA);
+		layoutWorldPtr("48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 49 40 E9 ?? ?? ?? ??", 2);
+        housingModulePtr("40 53 48 83 EC 20 33 DB 48 39 1D ?? ?? ?? ?? 75 2C 45 33 C0 33 D2 B9 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 85 C0 74 11 48 8B C8 E8 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? EB 07", 0xA);
 		*/
-		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + 0x2056C88);//0x204ff88 //0X2058E88//0x1f65d30
+		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + 0x2056C88);
 		std::vector<CategoryInstance> import_file_furniture_list = Boogiepop_Import_ReadCateList();
 		Log() << "import_file_furniture_list:" << import_file_furniture_list.size() << endl;
 		FFHook& hook = FFHook::get_instance();
