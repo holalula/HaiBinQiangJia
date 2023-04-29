@@ -22,6 +22,7 @@
 #include <io.h>
 #include <direct.h>
 
+using namespace Rotation;
 using namespace FFLog;
 using FFLog::Log;
 using FFLog::int_to_hex;
@@ -121,8 +122,6 @@ public:
 	int FP_Boogiepop_CloseGuizmoSnap();
 	int FP_Boogiepop_SetGuizmoSnap(float s);
 
-	std::vector<float> Qua2Deg(QUA q2);
-	QUA Euler2Qua(std::vector<float> euler);
 	//SavePreview
 	int FP_Boogiepop_OnSavePreview();
 	int FP_Boogiepop_OffSavePreview();
@@ -136,42 +135,7 @@ public:
 	int GetActorHomeworld();
 	int GetActorId();
 
-	//HOOKING
-	struct HousingItem {
-		char _f1[0x50];
-		float x;
-		float y;
-		float z;
-		float _f2;
-		float qx;
-		float qy;
-		float qz;
-		float qw; //total size: 0x70
-	};
-	struct HousingStructure {
-		char _f1[0x18];
-		HousingItem* ActiveItem;
-	};
-	struct LayoutWorld {
-		char _f1[0x40];
-		HousingStructure* HousingStruct;
-	};
-	struct HousingGameObject {
-		char f1[0x30];
-		char p1[0x40];
-		char f2[0x10];
-		short category;
-		short _fill;
-		//unsigned int category;
-		char f3[0x1C];
-		float x;
-		float y;
-		float z;
-		char f4[0x4C];
-		unsigned long long addr;
-		char f5[0xb0];
-		char color;
-	};
+
 
 	void send_click() {
 		SetForegroundWindow(window);
@@ -322,9 +286,6 @@ public:
 	HWND window;
 	HANDLE hProcess = NULL;
 	DWORD lastError = 0;
-	float PI = 3.14159265358979323846;
-	float Rad2Deg = (float)(360 / (PI * 2));
-	float Deg2Rad = (float)(PI * 2) / 360;
 
 	SIZE_T dxgi_present_offset = 0;
 	SIZE_T get_dxgi_present();
@@ -631,28 +592,12 @@ bool FFProcess::CanEdit() {
 
 std::vector<float> FFProcess::GetSelectedItemPos() {
 	if (CanEdit()) {
-		FFProcess::POS pos = ReadGameMemory<POS>(baseAdd,OffsetMgr::SJPosition);
+		POS pos = ReadGameMemory<POS>(baseAdd,OffsetMgr::SJPosition);
 		return std::vector<float>{pos.x, pos.y, pos.z};
 	}
 	else {
 		return std::vector<float>{0.,0.,0.};
 	}
-}
-
-std::vector<float> FFProcess::Qua2Deg(FFProcess::QUA q2) {
-	FFProcess::QUA q;
-	q.x = q2.w;
-	q.y = q2.z;
-	q.z = q2.x;
-	q.w = q2.y;
-	float Y = (float)atan2(2. * q.x * q.w + 2. * q.y * q.z, 1 - 2. * (q.z * q.z + q.w * q.w));
-	float X = (float)asin(2. * (q.x * q.z - q.w * q.y));
-	float Z = (float)atan2(2. * q.x * q.y + 2. * q.z * q.w, 1 - 2. * (q.y * q.y + q.z * q.z));
-
-	X *= Rad2Deg;
-	Y *= Rad2Deg;
-	Z *= Rad2Deg;
-	return std::vector<float>{X, Y, Z};
 }
 
 std::vector<float> FFProcess::GetSelectedItemRotation() {
@@ -674,26 +619,6 @@ void FFProcess::SetSelectedItemPos(std::vector<float> pos) {
 	newpos.y = pos[1];
 	newpos.z = pos[2];
 	WriteGameMemory<POS>(baseAdd, newpos, OffsetMgr::SJPosition);
-}
-
-FFProcess::QUA FFProcess::Euler2Qua(std::vector<float> euler) {
-	float xOver2 = euler[0] * Deg2Rad * 0.5f;
-	float yOver2 = euler[1] * Deg2Rad * 0.5f;
-	float zOver2 = euler[2] * Deg2Rad * 0.5f;
-
-	float sinXOver2 = (float)sin(xOver2);
-	float cosXOver2 = (float)cos(xOver2);
-	float sinYOver2 = (float)sin(yOver2);
-	float cosYOver2 = (float)cos(yOver2);
-	float sinZOver2 = (float)sin(zOver2);
-	float cosZOver2 = (float)cos(zOver2);
-
-	QUA result;
-	result.x = cosYOver2 * sinXOver2 * cosZOver2 + sinYOver2 * cosXOver2 * sinZOver2;
-	result.y = sinYOver2 * cosXOver2 * cosZOver2 - cosYOver2 * sinXOver2 * sinZOver2;
-	result.z = cosYOver2 * cosXOver2 * sinZOver2 - sinYOver2 * sinXOver2 * cosZOver2;
-	result.w = cosYOver2 * cosXOver2 * cosZOver2 + sinYOver2 * sinXOver2 * sinZOver2;
-	return result;
 }
 
 void FFProcess::SetSelectedItemRotation(std::vector<float> rotation) {

@@ -174,31 +174,6 @@ int _once = 0;
 #pragma endregion
 
 #pragma region BDTH
-/*
-* 0x30
-* 0x40 (byte Name[64], para):0x30
-* 0x10
-* 0x4 (uint HousingRowId):0x80
-* 0x1C
-* 0x4(float X):0xA0
-* 0x4(float Y):0xA4
-* 0x4(float Z):0xA8
-* 0x4C
-* (int64_t pointer):0xF8
-*/
-struct HousingGameObject {
-	char f1[0x30];
-	char p1[0x40];
-	char f2[0x10];
-	unsigned int category;
-	char f3[0x1C];
-	float x;
-	float y;
-	float z;
-	char f4[0x4C];
-	unsigned long long addr;
-};
-
 typedef void (__fastcall*_select)(unsigned int* housing, __int64 item);
 _select g_true_select;
 static void __fastcall hook_select(unsigned int* housing, __int64 item) {
