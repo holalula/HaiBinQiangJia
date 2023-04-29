@@ -4,6 +4,7 @@
 #include "../../pch.h"
 #include "../utils/md5.h"
 #include "../utils/sigscanner.h"
+#include "../utils/strutils.h"
 #include "../rapidjson/document.h"
 #include "../rapidjson/stringbuffer.h"
 #include "../rapidjson/filereadstream.h"
@@ -13,7 +14,6 @@
 #include "FFHook.h"
 #include "FFLog.h"
 #include <TlHelp32.h>
-#include <tchar.h>
 #include <iostream>
 #include <vector>
 #include <Shlobj.h>
@@ -44,100 +44,17 @@ struct CategoryInstance {
 	int _p = 0;
 };
 
-std::wstring stringToWstring(const std::string& str)
-{
-	LPCSTR pszSrc = str.c_str();
-	int nLen = MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, NULL, 0);
-	if (nLen == 0)
-		return std::wstring(L"");
 
-	wchar_t* pwszDst = new wchar_t[nLen];
-	if (!pwszDst)
-		return std::wstring(L"");
 
-	MultiByteToWideChar(CP_ACP, 0, pszSrc, -1, pwszDst, nLen);
-	std::wstring wstr(pwszDst);
-	delete[] pwszDst;
-	pwszDst = NULL;
-
-	return wstr;
-}
-
-char* TCHAR2char(const TCHAR* STR)
-
-{
-	int size = WideCharToMultiByte(CP_ACP, 0, STR, -1, NULL, 0, NULL, FALSE);
-	char* str = new char[sizeof(char) * size];
-	WideCharToMultiByte(CP_ACP, 0, STR, -1, str, size, NULL, FALSE);
-	return str;
-}
-
-string FileDigest(const string& file) {
-
-	ifstream in(file.c_str(), std::ios::binary);
-	if (!in)
-		return "";
-
-	MD5 md5;
-	std::streamsize length;
-	char buffer[1024];
-	while (!in.eof()) {
-		in.read(buffer, 1024);
-		length = in.gcount();
-		if (length > 0)
-			md5.update(buffer, length);
-	}
-	in.close();
-	return md5.toString();
-}
-
-bool checkMD5() {
-	std::string dest = "35ce2f41960b6a5e2ec3c0ffad52ff4f";//5.57
-	TCHAR pCallFileName[MAX_PATH];
-	::GetModuleFileName(NULL, pCallFileName, MAX_PATH);
-	std::string path = TCHAR2char(pCallFileName);
-	if (path.find("HaiBinQiangJia.exe") == std::string::npos && path.find("ffxiv_dx11.exe") == std::string::npos) {
-		return 0;
-	}
-	if (path.find("HaiBinQiangJia.exe") != std::string::npos) {
-		std::string s2 = FileDigest(TCHAR2char(pCallFileName));
-		return dest == s2;
-	}
-	else {
-		return 1;
-	}
-}
 class DLLAPI FFProcess {
 public:
 	~FFProcess() {};
 	FFProcess() { 
 		Log() << "CREATE FFPROCESS" << std::endl;
 		LogSystemInfo();
-
-		if (!checkMD5()) {
-			//cout << "md5failed" << endl;
-			//Log(LogType::error) << "MD5 failed" << std::endl;
-			//return; //for cpk
-		}
 		window = FindWindow(L"FFXIVGAME", NULL);
 		Log() << "FindWindow: " + int_to_hex(window) << std::endl;
 		this->OpenFFXIVGetBaseAdd();
-		/*
-		FFHook& ffhook = FFHook::get_instance();
-		std::string strpath = GetLocalAppDataPath() + "\\HaiBinQiangJia\\boogiepop.dll";
-		std::wstring ws = stringToWstring(strpath);
-		if (Load_Inject(ws.c_str()) != 0) {
-			std::cout << "InejctSuc" << endl;
-		}
-		*/
-		/*
-		std::string strpath = GetLocalAppDataPath() + "\\HaiBinQiangJia\\boogiepop.dll";
-		std::wstring ws = stringToWstring(strpath);
-		if ((_access(strpath.c_str(), 0)) != -1) {
-			Load_Inject(ws.c_str());
-			std::cout << "InejctSuc" << endl;
-		}*/
-		//std::cout << "EndInejct" << endl;
 	};
 	FFProcess(const FFProcess&) = delete;
 	FFProcess& operator=(const FFProcess&) = delete;
