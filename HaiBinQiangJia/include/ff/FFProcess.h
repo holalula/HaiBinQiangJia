@@ -44,8 +44,6 @@ struct CategoryInstance {
 	int _p = 0;
 };
 
-
-
 class DLLAPI FFProcess {
 public:
 	~FFProcess() {};
@@ -159,7 +157,7 @@ public:
 	int GetActorHomeworld();
 	int GetActorId();
 
-	//BDTH
+	//HOOKING
 	struct HousingItem {
 		char _f1[0x50];
 		float x;
@@ -224,7 +222,6 @@ public:
 		
 		px = 65535 * ((double)px / client_width);
 		py = 65535 * ((double)py / client_height);
-		//cout << dec << px  << " " << py << endl;
 		INPUT in[2]; // 0 = left dn, 1 = left up
 		ZeroMemory(in, sizeof(INPUT) * 2);
 
@@ -260,9 +257,9 @@ public:
 	}
 	int total_count = 0, import_count = 0;
 	void print_cate_list(vector<CategoryInstance>& catelist) {
-		Log() << "==Print_Cate_List:" << endl;
+		Log() << "catelist:" << endl;
 		for (auto ci : catelist) {
-			Log() << "cateid,size = " << ci.categoryId << ", " << ci.color.size() << endl;
+			Log() << "cateid, size = " << ci.categoryId << ", " << ci.color.size() << endl;
 			for (auto x : ci.posX) Log() << x << ", "; Log() << endl;
 			for (auto x : ci.posY) Log() << x << ", "; Log() << endl;
 			for (auto x : ci.posZ) Log() << x << ", "; Log() << endl;
@@ -285,26 +282,11 @@ public:
 		LayoutWorld* layoutWorld = (LayoutWorld*)*(SIZE_T*)(baseAdd + 0x2056C88);//0x204ff88 //0X2058E88//0x1f65d30
 		std::vector<CategoryInstance> import_file_furniture_list = Boogiepop_Import_ReadCateList();
 		Log() << "import_file_furniture_list:" << import_file_furniture_list.size() << endl;
-		//std::vector<CategoryInstance> new_list;
-		//for (auto ci : import_file_furniture_list) {
-		//	CategoryInstance temp;
-		//	temp.categoryId = ci.categoryId;
-		//	temp.count = ci.color.size();
-		//	std::copy(ci.color.begin(), ci.color.end(), temp.color);
-		//	std::copy(ci.posX.begin(), ci.posX.end(), temp.posX);
-		//	std::copy(ci.posY.begin(), ci.posY.end(), temp.posY);
-		//	std::copy(ci.posZ.begin(), ci.posZ.end(), temp.posZ);
-		//	std::copy(ci.r.begin(), ci.r.end(), temp.r);
-		//}
-
 		FFHook& hook = FFHook::get_instance();
 		hook.set_Total_count(total_count);
 		hook.set_Import_c(0);
-		Log() << "before gen list" << endl;
 		for (auto _addr : list) {
-
 			HousingGameObject* obj = (HousingGameObject*)_addr;
-
 			int target_cate = obj->category;
 			int target_color = obj->color;
 			float px = 0, py = 0, pz = 0, pr = 0;
@@ -320,7 +302,6 @@ public:
 						i--;
 					}
 					if (i >= 0) {
-						Log() << "erase in vec: i =" << i << endl;
 						px = ci.posX[i]; ci.posX.erase(ci.posX.begin() + i);
 						py = ci.posY[i]; ci.posY.erase(ci.posY.begin() + i);
 						pz = ci.posZ[i]; ci.posZ.erase(ci.posZ.begin() + i);
@@ -328,19 +309,15 @@ public:
 						ci.color.erase(ci.color.begin() + i);
 						ci.count--;
 					}
-					Log() << "target:" << target_cate << ", " << target_color << ", res:" << px << ", " << py << ", " << pz << endl;
-					Log() << "after:" << ci.color.size() << endl;
 					print_cate_list(import_file_furniture_list);
 					break;
 				}
 			}
 			
-			auto qua = Euler2Qua({ 0, pr * Rad2Deg,0 });
-			Log() << "before set_rotate_mode" << endl;
+			auto qua = Euler2Qua({ 0, pr * Rad2Deg,0 });		
 			set_rotate_mode();
-			Log() << "before my_select" << endl;
 			my_select(housing, obj->addr);
-			Log() << "after my_select" << endl;
+			Log() << "my_select()" << endl;
 			layoutWorld->HousingStruct->ActiveItem->x = px;
 			layoutWorld->HousingStruct->ActiveItem->y = py;
 			layoutWorld->HousingStruct->ActiveItem->z = pz;
@@ -354,17 +331,6 @@ public:
 			hook.set_Import_c(import_count);
 			Sleep(1500);
 		}
-	}
-	void _test() {
-		auto list = get_furniture_addr_list();
-		HousingGameObject obj;
-		SIZE_T readSz;
-		ReadProcessMemory(this->hProcess, (LPCVOID)list[0], &obj, sizeof(HousingGameObject), &readSz);
-		Log() << dec << obj.category << endl;
-		Log() << hex << (int)obj.color << endl;
-		ReadProcessMemory(this->hProcess, (LPCVOID)list[1], &obj, sizeof(HousingGameObject), &readSz);
-		Log() << dec << obj.category << endl;
-		Log() << hex << (int)obj.color << endl;
 	}
 
 	struct FurnitureList {
@@ -390,7 +356,6 @@ public:
 		WriteProcessMemory(this->hProcess, (LPVOID)(baseAdd + OffsetMgr::offset_Select), &nop9, sizeof(nop9), &dwSize);
 	}
 
-	//Var
 	DWORD pid = 0;
 	SIZE_T baseAdd = 0;
 	HWND window;
