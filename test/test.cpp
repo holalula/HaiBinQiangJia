@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include "../HaiBinQiangJia/include/ff/FFProcess.h"
+#include "../HaiBinQiangJia/include/utils/sigscanner.h"
 
 int main()
 {

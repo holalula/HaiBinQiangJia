@@ -116,18 +116,40 @@ void set_each_byte(T& data, char* values, int len) {
 		*(p + i) = values[i];
 	}
 }
-struct OpCall {
+struct OpCallOffset {
 	char op1;
 	char offset[4];
 };
-static char CALL_OP = 0xE8;
-SIZE_T GetOffsetFromOpCall(SIZE_T op_offset, HANDLE hprocess, SIZE_T base_add) {
-	OpCall buf;
-	ReadProcessMemory(hprocess, (LPCVOID)(base_add + op_offset), &buf, sizeof(OpCall), nullptr);
-	if (buf.op1 != CALL_OP) { return 0; }
+static char OP_CALL = 0xE8;
+struct OpMovRegOffset {
+	char op1;
+	char op2[2];
+	char offset[4];
+};
+static char OP_MOV = 0x48;
+/*
+* base_add + op_offset: call base_add + target_offset
+*/
+int GetOffsetFromOpCallOffset(SIZE_T op_offset, HANDLE hprocess, SIZE_T base_add) {
+	OpCallOffset buf;
+	ReadProcessMemory(hprocess, (LPCVOID)(base_add + op_offset), &buf, sizeof(OpCallOffset), nullptr);
 
-	SIZE_T offset_bit;
+	if (buf.op1 != OP_CALL) { return 0; }
+
+	int offset_bit = 0;
 	set_each_byte(offset_bit, buf.offset, sizeof(buf.offset));
-	SIZE_T next_offset = op_offset + sizeof(OpCall);
+	int next_offset = op_offset + sizeof(OpCallOffset);
+	return next_offset + offset_bit;
+}
+/*
+* base_add + op_offset: mov rcx, [base_add + target_offset]
+*/
+int GetOffsetFromOpMovRegOffset(SIZE_T op_offset, HANDLE hprocess, SIZE_T base_add) {
+	OpMovRegOffset buf;
+	ReadProcessMemory(hprocess, (LPCVOID)(base_add + op_offset), &buf, sizeof(OpMovRegOffset), nullptr);
+	int offset_bit = 0;
+	set_each_byte(offset_bit, buf.offset, sizeof(buf.offset));
+	
+	int next_offset = op_offset + sizeof(OpMovRegOffset);
 	return next_offset + offset_bit;
 }

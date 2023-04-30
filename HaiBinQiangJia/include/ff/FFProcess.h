@@ -262,9 +262,8 @@ int FFProcess::UpdateOffset() {
 	LPCSTR Loadhouse_Signature = "\x85\xC0\x74\x00\x48\x8D\x00\x00\xE9\x00\x00\x00\x00\x48\x8B";
 	LPCSTR Loadhouse_Mask = "xxx?xx??x????xx";
 
-	// TODO
-	LPCSTR Viewmatrix_Signature = "\x20\x65\x00\x8B\x04\x00\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xBA\x00\x00\x00\x00\x48\x8B\x00\x00\x8B\x04\x00\x39\x05\x00\x00\x00\x00\x7F\x00\x48\x8D\x00\x00\x00\x00\x00\x48\x83\xC4\x00\x5B\xC3\x48\x8D\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\x3D\xF7\x7F\xC3\x01";
-	LPCSTR Viewmatrix_Mask = "xx?xx?????xx????x????xx??xx?xx????x?xx?????xxx?xxxx?????x????xxxxxx";
+	LPCSTR Viewmatrix_Signature = "\xE8\x00\x00\x00\x00\x48\x8D\x4C\x24\x00\x48\x89\x4C\x24\x00\x4C\x8D\x4D\x00\x4C\x8D\x44\x24\x00";
+	LPCSTR Viewmatrix_Mask = "x????xxxx?xxxx?xxx?xxxx?";
 
 	LPCSTR Basehouse_Signature = "\x48\x8B\x00\x00\x00\x00\x00\x48\x85\x00\x74\x00\x48\x8B\x00\x00\xE9\x00\x00\x00\x00\xC3\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC";
 	LPCSTR Basehouse_Mask = "xx?????xx?x?xx??x????xxxxxxxxxxxx";
@@ -274,6 +273,15 @@ int FFProcess::UpdateOffset() {
 
 	LPCSTR select_signature = "\xE8\x00\x00\x00\x00\x48\x8B\x00\xE8\x00\x00\x00\x00\x48\x8B\x00\x00\x00\x48\x8B\x00\xE8";
 	LPCSTR select_mask = "x????xx?x????xx???xx?x";
+
+	LPCSTR layoutworld_signature = "\x48\x8B\x00\x00\x00\x00\x00\x48\x85\x00\x74\x00\x48\x8B\x00\x00\xE9\x00\x00\x00\x00\xC3\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC";
+	LPCSTR layoutworld_mask = "xx?????xx?x?xx??x????xxxxxxxxxxxx";
+
+	LPCSTR actortable_signature = "\x48\x8D\x00\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x44\x0F\x00\x00\x00\x00\x00\x00\xC6\x83\x78\x3B\x00\x00";
+	LPCSTR actortable_mask = "xx?????x????xx??????xxxxxx";
+
+	LPCSTR housingmodule_signature = "\x48\x39\x00\x00\x00\x00\x00\x75\x00\x45\x33\x00\x33\xD2\xB9\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x85\x00\x74\x00\x48\x8B\x00\xE8\x00\x00\x00\x00\x48\x89";
+	LPCSTR housingmodule_mask = "xx?????x?xx?xxx????x????xx?x?xx?x????xx";
 
 	LPCSTR Present_Signature = "\x41\x8B\xF0\x8B\xFA\x89\x54\x24\x00\x48\x8B\xD9\x48\x89\x4D\x00\xC6\x44\x24\x00\x00";
 	LPCSTR Present_Mask = "xxxxxxxx?xxxxxx?xxx?x";
@@ -301,21 +309,28 @@ int FFProcess::UpdateOffset() {
 		SIZE_T BLEU = SigScanner.FindSignature(mod.dwBase, mod.dwSize, BLEU_Signature, BLEU_Mask) - mod.dwBase;
 		SIZE_T OperateItem = SigScanner.FindSignature(mod.dwBase, mod.dwSize, OperateItem_Signature, OperateItem_Mask) - mod.dwBase - 0x5;
 		SIZE_T Loadhouse = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Loadhouse_Signature, Loadhouse_Mask) - mod.dwBase - 0x5;
-		SIZE_T Viewmatrix = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Viewmatrix_Signature, Viewmatrix_Mask) - mod.dwBase - 0x5;
+		SIZE_T Viewmatrix = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Viewmatrix_Signature, Viewmatrix_Mask) - mod.dwBase; // -0x5;
 		SIZE_T Basehouse = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Basehouse_Signature, Basehouse_Mask) - mod.dwBase;
 		SIZE_T SavePreview = SigScanner.FindSignature(mod.dwBase, mod.dwSize, SavePreview_Signature, SavePreview_Mask) - mod.dwBase - 0x5;
 		SIZE_T select = SigScanner.FindSignature(mod.dwBase, mod.dwSize, select_signature, select_mask) - mod.dwBase;
+		SIZE_T layoutworld = SigScanner.FindSignature(mod.dwBase, mod.dwSize, layoutworld_signature, layoutworld_mask) - mod.dwBase;
+		SIZE_T actortable = SigScanner.FindSignature(mod.dwBase, mod.dwSize, actortable_signature, actortable_mask) - mod.dwBase;
+		SIZE_T housingmodule = SigScanner.FindSignature(mod.dwBase, mod.dwSize, housingmodule_signature, housingmodule_mask) - mod.dwBase;
 		OffsetMgr::pa1Offset = PA1;
 		OffsetMgr::pa2Offset = PA2;
 		OffsetMgr::pa3Offset = PA3;
 		OffsetMgr::blueOffset = BLEU;
 		OffsetMgr::offset_OperateItem = OperateItem;
 		OffsetMgr::offset_Loadhouse = Loadhouse;
-		OffsetMgr::offset_ViewMatrix = Viewmatrix;
+		
 		OffsetMgr::offset_SavePreview = SavePreview;
-		//selectItemAddress = Plugin.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 6C 24 40 48 8B CE");
-		//OffsetMgr::offset_Select = (SIZE_T)0x5AFC40;//0x5B00B0;//0x5AFFC0;// 0x5A3310;
-		OffsetMgr::offset_Select = GetOffsetFromOpCall(select, hProcess, baseAdd);
+		OffsetMgr::offset_Select = GetOffsetFromOpCallOffset(select, hProcess, baseAdd);
+		OffsetMgr::layoutWorld = GetOffsetFromOpMovRegOffset(layoutworld, hProcess, baseAdd);
+		OffsetMgr::baseHouse = OffsetMgr::layoutWorld;
+		OffsetMgr::offset_ViewMatrix = GetOffsetFromOpCallOffset(Viewmatrix, hProcess, baseAdd);
+		OffsetMgr::ActortableBase = GetOffsetFromOpMovRegOffset(actortable, hProcess, baseAdd);
+		OffsetMgr::housingmodule = GetOffsetFromOpMovRegOffset(housingmodule, hProcess, baseAdd);
+		
 
 		Log() << "<<<<<< offets:" << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa1Offset) << std::endl;
@@ -327,6 +342,10 @@ int FFProcess::UpdateOffset() {
 		Log() << int_to_hex(OffsetMgr::offset_ViewMatrix) << std::endl;
 		Log() << int_to_hex(OffsetMgr::offset_SavePreview) << std::endl;
 		Log() << int_to_hex(OffsetMgr::offset_Select) << std::endl;
+		Log() << int_to_hex(OffsetMgr::layoutWorld) << std::endl;
+		Log() << int_to_hex(OffsetMgr::baseHouse) << std::endl;
+		Log() << int_to_hex(OffsetMgr::ActortableBase) << std::endl;
+		Log() << int_to_hex(OffsetMgr::housingmodule) << std::endl;
 		Log() << ">>>>>> offets" << std::endl;
 		return 1;
 	}
