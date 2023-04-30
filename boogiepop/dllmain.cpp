@@ -1,9 +1,4 @@
-﻿//#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.                   
-//#define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
-//#endif
-//#include "pch.h"
-//#include "../HaiBinQiangJia/FFProcess.h"
-#include <include/ff/FFProcess.h>
+﻿#include <include/ff/FFProcess.h>
 #include <include/utils/memory.h>
 #include<WinSock2.h>
 #include "include/mhook/mhook-lib/mhook.h"
@@ -105,7 +100,7 @@ const char* callName_ff = "ffxiv_dx11.exe";
 
 #pragma region SavePreview
 typedef void(__fastcall* _savepreview)(__int64* a, __int64* b);
-_savepreview g_trueSavepreview;// = (_persistpreview)(fp.GetBaseAdd() + 0x3dc920);
+_savepreview g_trueSavepreview;
 int preview_once = 2;
 static void __fastcall hook_savepreview(__int64* a, __int64* b) {
 	if (savepreview ==1) {
@@ -123,7 +118,6 @@ _matrix g_trueMatrix;
 static __int64 WINAPI hook_matrix() {
 	__int64 r = (__int64)g_trueMatrix();
 	MatrixAddr = r + (__int64)0x1b4;
-	//std::cout << "hook_matrix ret = " <<r<< std::endl;
 	return r;
 }
 #pragma endregion
@@ -158,9 +152,7 @@ int WINAPI hook_WSASend(SOCKET s, LPWSABUF lpBuffers, DWORD dwBufferCount, LPDWO
 
 #pragma region OperateLoadhouseDef
 typedef void (WINAPI* _house)(void* housing, void* item);
-//_house g_trueOperate = (_house)(fp.GetBaseAdd() + 0x56A147 + 9);
 _house g_trueOperate;
-//_house g_trueLoadhouse = (_house)(fp.GetBaseAdd() + 0xB3FE00);
 _house g_trueLoadhouse;
 //preview housing
 int read_json_once = 1;
@@ -216,12 +208,13 @@ void InitImport() {
 	}
 	total_count = vfurins.size();
 	import_c = 0; _once = 0;
-	MessageBox(NULL, TEXT("摆放初始化完成"), TEXT("InitImport"), MB_ICONINFORMATION);
+	MessageBox(NULL, TEXT("InitImport Completed"), TEXT("InitImport"), MB_ICONINFORMATION);
 }
 static int WINAPI hook_send(SOCKET s, const char* buf, int len, int flags) {
 	return g_trueSend(s, buf, len, flags);
 }
 
+// Deprecated
 //static int WINAPI hook_send(SOCKET s, const char* buf, int len, int flags)
 //{
 //	if (gInit == 1) {
@@ -287,7 +280,7 @@ static int WINAPI hook_send(SOCKET s, const char* buf, int len, int flags) {
 //					if (_once == 0) {
 //						gMode = 0;
 //						_once = 1;
-//						MessageBox(NULL, TEXT("摆放完成，重新进屋"), TEXT("摆放完成"), MB_ICONINFORMATION);
+//						MessageBox(NULL, TEXT("complted"), TEXT("complted"), MB_ICONINFORMATION);
 //					}
 //				}
 //			}
@@ -295,7 +288,7 @@ static int WINAPI hook_send(SOCKET s, const char* buf, int len, int flags) {
 //				if (_once == 0) {
 //					gMode = 0;
 //					_once = 1;
-//					MessageBox(NULL, TEXT("摆完了，重新进屋"), TEXT("摆放完成"), MB_ICONINFORMATION);
+//					MessageBox(NULL, TEXT("complted"), TEXT("complted"), MB_ICONINFORMATION);
 //				}
 //
 //			}
@@ -334,7 +327,7 @@ static int WINAPI hook_send(SOCKET s, const char* buf, int len, int flags) {
 static int WINAPI hook_recv(SOCKET s, char* buf, int len, int flags)
 {
 	//Triger
-	cout << "recv: " << gInit << endl;
+	// cout << "recv: " << gInit << endl;
 	//if (gInit == 1) {
 	//	cout << "Trigger CHECK: " << gInit << endl;
 	//	gInit = 0;
@@ -456,22 +449,6 @@ static void WINAPI hook_Loadhouse(__int64* housing, __int64* item) {
 }
 #pragma endregion
 
-#pragma region Utils
-/*
-char* TCHAR2char(const TCHAR* STR)
-{
-	//返回字符串的长度
-	int size = WideCharToMultiByte(CP_ACP, 0, STR, -1, NULL, 0, NULL, FALSE);
-	//申请一个多字节的字符串变量
-	char* str = new char[sizeof(char) * size];
-	//将STR转成str
-	WideCharToMultiByte(CP_ACP, 0, STR, -1, str, size, NULL, FALSE);
-	return str;
-}
-*/
-#pragma endregion
-
-
 #pragma region Guizmo
 //ImGUI imports
 #include <imgui.h>
@@ -536,8 +513,8 @@ void detourDirectX();
 DWORD WINAPI SetupDX11Hook(LPVOID lp){
 //void SetupDX11Hook() {
 	Log() << "SetupDX11Hook:" << std::endl;
-	//FFProcess& fp = FFProcess::get_instance();
-	//创建设备、设备上下文和交换链，只需要一个东西，就是目标窗口的hWnd
+	
+	// To create a device, device context and swap chain, only one thing is needed, which is the hWnd of the target window
 	D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_0;
 	DXGI_SWAP_CHAIN_DESC scd{};
 	ZeroMemory(&scd, sizeof(scd));
@@ -570,7 +547,8 @@ DWORD WINAPI SetupDX11Hook(LPVOID lp){
 	while (true) {
 		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, &feature_level, 1, D3D11_SDK_VERSION, &scd, &swapchain, &device, NULL, &context);
 		Log() << "result:" + std::to_string(result) << std::endl;
-		//*取一级指针的值，获取到IDXGISwapChain接口，https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nn-dxgi-idxgiswapchain
+		// Take the value of the first-level pointer and get the IDXGISwapChain interface
+		// https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nn-dxgi-idxgiswapchain
 		
 		Log() << "swapchain: " << swapchain << std::endl;
 		Log() << "device: " << device << std::endl;
@@ -583,9 +561,9 @@ DWORD WINAPI SetupDX11Hook(LPVOID lp){
 	}
 	
 
-	//获取需要hook的两个函数的地址，就是IDXGISwapChain接口提供的两个函数。
+	// Obtain the addresses of the two functions that need hooks, which are the two functions provided by the IDXGISwapChain interface。
 
-	//向用户呈现渲染图像。IDXGISwapChain::Present
+	// Present the rendered image to the user. IDXGISwapChain::Present
 	PVOID pPresentAddress = reinterpret_cast<LPVOID>(pVTableSwapChain[IDXGISwapChainvTable::PRESENT]);
 	Log() << "SetupDX11Hook: Present: " + std::to_string((SIZE_T)pPresentAddress) << std::endl;
 
@@ -794,12 +772,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 		if (0 == strcmp(callName_ff, TCHAR2char(pCallFileName) + strlen(TCHAR2char(pCallFileName)) - strlen(callName_ff))) {
 			Log() << "[BG] dll inject end:" << callName_ff << " " << TCHAR2char(pCallFileName)<<  " --" << TCHAR2char(pCallFileName) + strlen(TCHAR2char(pCallFileName)) - strlen(callName_ff) << std::endl;
 			CreateThread(
-				NULL,//表示线程内核对象的安全属性;
-				NULL,//表示线程堆栈空间的大小;
-				SetupDX11Hook,//表示新线程所执行的线程函数地址;
-				NULL,//函数的参数;
-				0,//立刻执行;
-				nullptr//将返回线程的ID号;
+				NULL,// The security attribute of a thread kernel object
+				NULL,// The size of the thread stack space
+				SetupDX11Hook,// The address of the thread function executed by the new thread
+				NULL,// function parameters
+				0,// execute immediately
+				nullptr// (out) the ID number of the thread
 			);
 			//Mhook_SetHook((LPVOID*)&g_trueSend, hook_send);
 			//Mhook_SetHook((LPVOID*)&g_trueRecv, hook_recv);
@@ -825,12 +803,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			//printValues();
 			DWORD threadid;
 			HANDLE hthread = CreateThread(
-				NULL,//表示线程内核对象的安全属性;
-				NULL,//表示线程堆栈空间的大小;
-				Check,//表示新线程所执行的线程函数地址;
-				NULL,//函数的参数;
-				0,//立刻执行;
-				&threadid//将返回线程的ID号;
+				NULL, // The security attribute of a thread kernel object
+				NULL, // The size of the thread stack space
+				Check, // The address of the thread function executed by the new thread
+				NULL, // function parameters
+				0, // function parameters
+				&threadid // (out) the ID number of the thread
 			);
 			Log() << "[BG] Create Thread:" << hthread << endl;
 		}
