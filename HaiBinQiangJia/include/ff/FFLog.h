@@ -53,7 +53,7 @@ namespace FFLog {
         }
 
         std::string file_name = "log";
-        const LogTarget log_target = file;
+        const LogTarget log_target = terminal;
 
         LogType type;
         LogProxy(LogType type) : type(type) {

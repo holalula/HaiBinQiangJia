@@ -3,12 +3,8 @@
 
 #include <iostream>
 #include <string>
-
 #include <Windows.h>
 #include <TlHelp32.h>
-
-
-// Better than using namespace std;
 
 using std::cout;
 using std::endl;
@@ -112,3 +108,26 @@ public:
 		return NULL;
 	}
 };
+
+template<typename T>
+void set_each_byte(T& data, char* values, int len) {
+	char* p = (char*)&data;
+	for (int i = 0; i < len; i++) {
+		*(p + i) = values[i];
+	}
+}
+struct OpCall {
+	char op1;
+	char offset[4];
+};
+static char CALL_OP = 0xE8;
+SIZE_T GetOffsetFromOpCall(SIZE_T op_offset, HANDLE hprocess, SIZE_T base_add) {
+	OpCall buf;
+	ReadProcessMemory(hprocess, (LPCVOID)(base_add + op_offset), &buf, sizeof(OpCall), nullptr);
+	if (buf.op1 != CALL_OP) { return 0; }
+
+	SIZE_T offset_bit;
+	set_each_byte(offset_bit, buf.offset, sizeof(buf.offset));
+	SIZE_T next_offset = op_offset + sizeof(OpCall);
+	return next_offset + offset_bit;
+}

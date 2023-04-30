@@ -272,6 +272,9 @@ int FFProcess::UpdateOffset() {
 	LPCSTR SavePreview_Signature = "\x48\x89\x00\x00\x00\x48\x89\x00\x00\x00\x55\x48\x8D\x00\x00\x00\x48\x81\xEC\x00\x00\x00\x00\x48\x8B\x00\x00\x00\x00\x00\x48\x33\x00\x48\x89\x00\x00\x0F\x10";
 	LPCSTR SavePreview_Mask = "xx???xx???xxx???xxx????xx?????xx?xx??xx";
 
+	LPCSTR select_signature = "\xE8\x00\x00\x00\x00\x48\x8B\x00\xE8\x00\x00\x00\x00\x48\x8B\x00\x00\x00\x48\x8B\x00\xE8";
+	LPCSTR select_mask = "x????xx?x????xx???xx?x";
+
 	LPCSTR Present_Signature = "\x41\x8B\xF0\x8B\xFA\x89\x54\x24\x00\x48\x8B\xD9\x48\x89\x4D\x00\xC6\x44\x24\x00\x00";
 	LPCSTR Present_Mask = "xxxxxxxx?xxxxxx?xxx?x";
 
@@ -301,6 +304,7 @@ int FFProcess::UpdateOffset() {
 		SIZE_T Viewmatrix = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Viewmatrix_Signature, Viewmatrix_Mask) - mod.dwBase - 0x5;
 		SIZE_T Basehouse = SigScanner.FindSignature(mod.dwBase, mod.dwSize, Basehouse_Signature, Basehouse_Mask) - mod.dwBase;
 		SIZE_T SavePreview = SigScanner.FindSignature(mod.dwBase, mod.dwSize, SavePreview_Signature, SavePreview_Mask) - mod.dwBase - 0x5;
+		SIZE_T select = SigScanner.FindSignature(mod.dwBase, mod.dwSize, select_signature, select_mask) - mod.dwBase;
 		OffsetMgr::pa1Offset = PA1;
 		OffsetMgr::pa2Offset = PA2;
 		OffsetMgr::pa3Offset = PA3;
@@ -310,8 +314,9 @@ int FFProcess::UpdateOffset() {
 		OffsetMgr::offset_ViewMatrix = Viewmatrix;
 		OffsetMgr::offset_SavePreview = SavePreview;
 		//selectItemAddress = Plugin.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 6C 24 40 48 8B CE");
-		OffsetMgr::offset_Select = (SIZE_T)0x5AFC40;//0x5B00B0;//0x5AFFC0;// 0x5A3310;
-		
+		//OffsetMgr::offset_Select = (SIZE_T)0x5AFC40;//0x5B00B0;//0x5AFFC0;// 0x5A3310;
+		OffsetMgr::offset_Select = GetOffsetFromOpCall(select, hProcess, baseAdd);
+
 		Log() << "<<<<<< offets:" << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa1Offset) << std::endl;
 		Log() << int_to_hex(OffsetMgr::pa2Offset) << std::endl;
