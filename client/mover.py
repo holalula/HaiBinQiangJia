@@ -3,8 +3,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QSortFilterProxyModel
-from PyQt5.QtWidgets import QCompleter, QComboBox
 from QCandyUi import CandyWindow
 import Ui_mover
 import json
@@ -12,107 +10,11 @@ import os
 from collections import defaultdict,Counter
 from housingcloud import HousingCloud
 from uploadhousing import UploadHousing
-import datetime
-import hashlib
-import uuid
 from ctypes import *
-import mysql.connector
-from Crypto.Cipher import AES
-from binascii import b2a_base64, a2b_base64
 from config import *
 from storage import *
-def get_mac_address():
-    node = uuid.getnode()
-    mac = uuid.UUID(int = node).hex[-12:]
-    return mac
-def stringtomd5(originstr):
-    signaturemd5 = hashlib.md5()
-    signaturemd5.update(originstr.encode('utf8'))
-    return signaturemd5.hexdigest()
-
-salt = "neversmile"
-key = "wjsycdmm"
-def rpad(text, divisor: int, suffix):
-    remain = len(text) % divisor
-    if remain > 0:
-        text += suffix * (divisor - remain)
-    return text
-
-def encrypt(text, salt, key):
-    fmtkey, fmtiv = map(lambda s: s.encode()[:16].ljust(16, b'\0'), (key, salt))
-    cryptor = AES.new(fmtkey, AES.MODE_CBC, fmtiv)
-    fmttext = rpad(text.encode(), 16, b'\0')
-    ciphertext = cryptor.encrypt(fmttext)
-    return str(b2a_base64(ciphertext))[2:-3].rstrip('=')
-
-def decrypt(text, salt, key):
-    fmtkey, fmtiv = map(lambda s: s.encode()[:16].ljust(16, b'\0'), (key, salt))
-    cryptor = AES.new(fmtkey, AES.MODE_CBC, fmtiv)
-    fmttext = rpad(text, 4, '=')
-    return cryptor.decrypt(a2b_base64(fmttext)).rstrip(b'\0').decode()
-class ExtendedComboBox(QComboBox):
-    def __init__(self, parent=None):
-        super(ExtendedComboBox, self).__init__(parent)
-
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setEditable(True)
-
-        # add a filter model to filter matching items
-        self.pFilterModel = QSortFilterProxyModel(self)
-        self.pFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
-        self.pFilterModel.setSourceModel(self.model())
-
-        # add a completer, which uses the filter model
-        self.completer = QCompleter(self.pFilterModel, self)
-        # always show all (filtered) completions
-        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
-        self.setCompleter(self.completer)
-
-        # connect signals
-        self.lineEdit().textEdited.connect(self.pFilterModel.setFilterFixedString)
-        self.completer.activated.connect(self.on_completer_activated)
-
-
-    # on selection of an item from the completer, select the corresponding item from combobox
-    def on_completer_activated(self, text):
-        if text:
-            index = self.findText(text)
-            self.setCurrentIndex(index)
-            self.activated[str].emit(self.itemText(index))
-
-
-    # on model change, update the models of the filter and completer as well
-    def setModel(self, model):
-        super(ExtendedComboBox, self).setModel(model)
-        self.pFilterModel.setSourceModel(model)
-        self.completer.setModel(self.pFilterModel)
-
-
-    # on model column change, update the model column of the filter and completer as well
-    def setModelColumn(self, column):
-        self.completer.setCompletionColumn(column)
-        self.pFilterModel.setFilterKeyColumn(column)
-        super(ExtendedComboBox, self).setModelColumn(column)
-
-class FurnitureInstance(object):
-    def __init__(self,c=0,x=0,y=0,z=0,r=0,color=0):
-        self.category= c
-        self.color = color
-        self.x = x
-        self.y = y
-        self.z = z
-        self.r = r
-
-class CategoryInstance(object):
-    def __init__(self,_cid,_count=0,__p=0):
-        self.cid = _cid
-        self.count = _count
-        self.posX = []
-        self.posY = []
-        self.posZ = []
-        self.Rotation = []
-        self.Color = []
-        self._p = __p
+from housingmodel import *
+from customQt import ExtendedComboBox
 
 class Mover(QWidget):
     def __init__(self,dll):
@@ -147,14 +49,7 @@ class Mover(QWidget):
 
 
         self.SetTable()
-   
-    def intro(self):
-        self.ui.intro.setOpenExternalLinks(True)
-        font = QFont("Microsoft YaHei",10,63)
-        self.ui.intro.setFont(font)
-        self.ui.intro.setText(GetIntroduction())
 
-    #NewWindow
     def Btn_ExportCloud(self):
         self.upload = UploadHousing()
         self.upload = CandyWindow.createWindow(self.upload,'green')
@@ -163,7 +58,7 @@ class Mover(QWidget):
         self.upload.setWindowIcon(QIcon('hbqj.ico'))
         self.upload.setWindowFlags(Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
         self.upload.show()
-    #NewWindow
+
     def Btn_LoadCloud(self):
         self.housingcloud = HousingCloud(self)
         self.cloud = CandyWindow.createWindow(self.housingcloud,'green')
@@ -175,7 +70,6 @@ class Mover(QWidget):
 
     def Btn_Loadlocal(self):
         housing = self.dll.IsHousingOn()
-        #print("ishouing:"+str(self.dll.IsHousingOn()))
         if(housing==0):
             QMessageBox.information(self,"权限错误","用旋转状态选中任意家具再导出")
             return
