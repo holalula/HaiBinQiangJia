@@ -16,3 +16,6 @@
 /client/QCandyUi
 /client/*jpeg
 /client/*temp*
+/client/*json
+/client/fur
+/client/color
