@@ -13,3 +13,6 @@
 *dll
 
 /client/__pycache__
+/client/QCandyUi
+/client/*jpeg
+/client/*temp*
