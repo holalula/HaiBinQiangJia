@@ -9,4 +9,7 @@
 /boogiepop/Debug
 /boogiepop/x64
 
-*.zip
+*zip
+*dll
+
+/client/__pycache__
