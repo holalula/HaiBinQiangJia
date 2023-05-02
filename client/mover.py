@@ -14,6 +14,7 @@ from ctypes import *
 from config import *
 from storage import *
 from housingmodel import *
+from housingutils import *
 from customQt import ExtendedComboBox
 
 class Mover(QWidget):
@@ -75,7 +76,7 @@ class Mover(QWidget):
             return
         res = self.dll.ExportHousing()
         self.LoadAJsonFile("__tempcate.hbqj")
-        os.remove(self.GetHBQJAppPath("__tempcate.hbqj"))
+        os.remove(GetHBQJAppPath("__tempcate.hbqj"))
         
     def Btn_Layoutcheck(self):
         inslist = self.Table2InsList()
@@ -94,10 +95,9 @@ class Mover(QWidget):
             strck = "似乎没家具粘连，但也不一定"
         QInputDialog.getMultiLineText(self,"家具摆放检查","检查结果",strck)
 
-
     def Btn_Arrange(self):
-        #WriteFile __boogiepop_import.hbqj
-        filepath = self.GetHBQJAppPath("__boogiepop_import.hbqj")
+        # write file __boogiepop_import.hbqj
+        filepath = GetHBQJAppPath("__boogiepop_import.hbqj")
         if(filepath!=""):
             inslist = self.Table2InsList()
             catelist = self.InsList2CateList(inslist)
@@ -106,9 +106,10 @@ class Mover(QWidget):
                 json.dump(jsondict,f)        
         res = self.dll.BeginArranging()
         self.timer_importprogress.start(1000)
+
     def Btn_Preview(self):
-        #WriteFile __boogiepop_preview.hbqj
-        filepath = self.GetHBQJAppPath("__boogiepop_preview.hbqj")
+        # write file __boogiepop_preview.hbqj
+        filepath = GetHBQJAppPath("__boogiepop_preview.hbqj")
         if(filepath!=""):
             inslist = self.Table2InsList()
             catelist = self.InsList2CateList(inslist)
@@ -302,12 +303,6 @@ class Mover(QWidget):
         self.ui.tableWidget.setItem(r,7,QTableWidgetItem(str(cls)))
         return self.ui.tableWidget.rowCount()
 
-    def GetHBQJAppPath(self,filename):
-        appdata = os.environ['APPDATA']
-        folder = os.path.join(appdata,'HaiBinQiangJia')
-        #filename = "__boogiepop_preview.hbqj"
-        return os.path.join(folder,filename)
-
     def LoadJsonDict(self,jsondict, cloud = False):
         self.ClearTable()
         res = jsondict
@@ -345,7 +340,7 @@ class Mover(QWidget):
 
     def LoadAJsonFile(self,filename):
         self.ClearTable()
-        with open(self.GetHBQJAppPath(filename),'r') as f:
+        with open(GetHBQJAppPath(filename),'r') as f:
             res = json.load(f)
         for catelist in res['list']:
             for j in range(catelist['count']):

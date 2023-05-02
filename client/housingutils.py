@@ -4,11 +4,19 @@ from Crypto.Cipher import AES
 from binascii import b2a_base64, a2b_base64
 import datetime
 import imghdr
+import os
+
+def GetHBQJAppPath(filename):
+    appdata = os.environ['APPDATA']
+    folder = os.path.join(appdata,'HaiBinQiangJia')
+    #filename = "__boogiepop_preview.hbqj"
+    return os.path.join(folder,filename)
 
 def get_mac_address():
     node = uuid.getnode()
     mac = uuid.UUID(int = node).hex[-12:]
     return mac
+
 def stringtomd5(originstr):
     signaturemd5 = hashlib.md5()
     signaturemd5.update(originstr.encode('utf8'))
