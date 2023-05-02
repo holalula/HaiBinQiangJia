@@ -45,6 +45,7 @@ public:
 	static SIZE_T layoutWorld;
 	static SIZE_T housingmodule;
 };
+// TODO: implement memory operations by offets or by models?
 SIZE_T OffsetMgr::IsWarehouseOffset = 0x08 - 0x10;
 SIZE_T OffsetMgr::pa1Offset = 0;
 SIZE_T OffsetMgr::pa2Offset = 0;

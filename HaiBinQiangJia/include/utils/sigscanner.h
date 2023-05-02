@@ -126,6 +126,7 @@ struct OpMovRegOffset {
 	char op2[2];
 	char offset[4];
 };
+// TODO: 0x48 is not only for MOV
 static char OP_MOV = 0x48;
 /*
 * base_add + op_offset: call base_add + target_offset

@@ -506,6 +506,7 @@ int FFProcess::SetActiveItemRotation(float r) {
 
 #pragma region PlaceAnywhere
 int FFProcess::InjectPlaceAnywhere() {
+	// TODO: unify memory operations
 	SIZE_T _add1_value2 = 0x4c010000017387c6;
 	SIZE_T _add2_value2 = 0x80010000017387c6;
 	SIZE_T _add3_value2 = 0x48010000017387c6;
@@ -659,6 +660,7 @@ int FFProcess::FurList2CateList() {
 	return 1;
 }
 
+// TODO: refactor operations on json
 int FFProcess::CateList2Json(const char* FilePath) {
 	rapidjson::Document d;
 	d.Parse("{}");

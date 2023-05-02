@@ -1,3 +1,4 @@
+// clear redundant functions
 #pragma once
 #include <vector>
 #include "../ff/FFLog.h"

@@ -1,4 +1,5 @@
-﻿#include <include/ff/FFProcess.h>
+﻿// TODO: refactor the hook
+#include <include/ff/FFProcess.h>
 #include <include/utils/memory.h>
 #include<WinSock2.h>
 #include "include/mhook/mhook-lib/mhook.h"

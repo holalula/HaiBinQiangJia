@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QCompleter, QComboBox
 from QCandyUi import CandyWindow
 import json
 import os
-import mysql.connector
 import json
 import subprocess
 from config import *

@@ -8,9 +8,7 @@ from PyQt5.QtWidgets import QCompleter, QComboBox
 from QCandyUi import CandyWindow
 import json
 import os
-import mysql.connector
 import json
-import datetime
 from housingutils import *
 from housingmodel import *
 from zipfile import ZipFile
@@ -167,17 +165,13 @@ class UploadHousing(QWidget):
             zip_obj.write(housingimage_file_path)
 
         explanation = '''
-        请将{}目录下的{}文件发送到邮箱：@163.com. 非常感谢！
+        请将{}目录下的{}文件发送到邮箱：hbqj_upload@163.com. 非常感谢😉！
         '''.format(UPLOAD_FOLDER, zip_file_name)
         explanation_file_path = os.path.join(UPLOAD_FOLDER, "说明文件.txt")
         with open(explanation_file_path, "w") as f:
             f.write(explanation)
             os.startfile(UPLOAD_FOLDER)
             os.startfile(explanation_file_path)
-        
-
-    
-        
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

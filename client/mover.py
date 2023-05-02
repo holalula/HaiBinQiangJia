@@ -17,6 +17,7 @@ from housingmodel import *
 from housingutils import *
 from customQt import ExtendedComboBox
 
+# TODO: deprecate encrypt
 class Mover(QWidget):
     def __init__(self,dll):
         super(Mover, self).__init__()
